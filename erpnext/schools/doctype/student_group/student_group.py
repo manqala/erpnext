@@ -10,21 +10,7 @@ from erpnext.schools.utils import validate_duplicate_student
 
 class StudentGroup(Document):
 	def autoname(self):
-		self.name = frappe.db.get_value("Course", self.course, "course_abbreviation")
-		if not self.name:
-			self.name = self.course
-		if self.student_batch:
-			self.name += "-" + self.student_batch
-		else:
-			prog_abb = frappe.db.get_value("Program", self.program, "program_abbreviation")
-			if not prog_abb:
-				prog_abb = self.program
-			if prog_abb:
-				self.name += "-" + prog_abb
-			if self.academic_year:
-				self.name += "-" + self.academic_year
-		if self.academic_term:
-			self.name += "-" + self.academic_term
+		self.name = self.student_group_name
 	
 	def validate(self):
 		self.validate_strength()
