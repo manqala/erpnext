@@ -15,9 +15,9 @@ requirements = parse_requirements("requirements.txt", session="")
 setup(
 	name='erpnext',
 	version=version,
-	description='ERP NEXT',
-	author='Frapp',
-	author_email='brownharryb@gmail.com',
+	description='Open Source ERP',
+	author='Frappe Technologies',
+	author_email='info@erpnext.com',
 	packages=find_packages(),
 	zip_safe=False,
 	include_package_data=True,

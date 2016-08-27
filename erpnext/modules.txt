@@ -1,1 +1,16 @@
-Erpnext
+Accounts
+CRM
+Buying
+Projects
+Selling
+Setup
+HR
+Manufacturing
+Stock
+Support
+Utilities
+Shopping Cart
+Hub Node
+Portal
+Maintenance
+Schools
