@@ -5,11 +5,7 @@
 
 from __future__ import unicode_literals
 import frappe
-<<<<<<< HEAD
-from frappe import _
-=======
 from frappe import msgprint, _
->>>>>>> 540bae8d5bc84c0e70593efa3ae8e9f0999543f7
 from frappe.model.document import Document
 from frappe.utils.data import date_diff
 
