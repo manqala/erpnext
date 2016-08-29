@@ -122,6 +122,10 @@ def get_data():
 			"items": [
 				{
 					"type": "doctype",
+					"name": "School"
+				},
+				{
+					"type": "doctype",
 					"name": "Course"
 				},
 				{
