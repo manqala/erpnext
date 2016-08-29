@@ -10,7 +10,9 @@ from frappe.model.document import Document
 
 class AcademicTerm(Document):
     def autoname(self):
-        self.name = self.academic_year + " ({})".format(self.term_name) if self.term_name else ""
+        self.name=""
+        if self.academic_year and self.term_name:
+            self.name = self.academic_year + " ({})".format(self.term_name)
         
     def validate(self):
         #Check if entry with same academic_year and the term_name already exists
