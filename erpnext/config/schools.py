@@ -93,6 +93,10 @@ def get_data():
 					"name": "Student Fee Collection",
 					"doctype": "Fees",
 					"is_query_report": True
+				},
+				{
+					"type": "doctype",
+					"name": "Fee Payment"
 				}
 			]
 		},
