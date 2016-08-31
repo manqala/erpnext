@@ -8,3 +8,4 @@ latest_updates.json
 *.egg-info
 dist/
 erpnext/docs/current
+>>>>>>> c111a372a2e38b92c2c61401b52270767696d158

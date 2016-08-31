@@ -93,6 +93,10 @@ def get_data():
 					"name": "Student Fee Collection",
 					"doctype": "Fees",
 					"is_query_report": True
+				},
+				{
+					"type": "doctype",
+					"name": "Fee Payment"
 				}
 			]
 		},
@@ -118,7 +122,15 @@ def get_data():
 			"items": [
 				{
 					"type": "doctype",
+					"name": "School"
+				},
+				{
+					"type": "doctype",
 					"name": "Course"
+				},
+				{
+					"type": "doctype",
+					"name": "Grading Structure"
 				},
 				{
 					"type": "doctype",

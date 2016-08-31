@@ -4,8 +4,11 @@ include *.json
 include *.md
 include *.py
 include *.txt
+<<<<<<< HEAD
+=======
 include .travis.yml
 recursive-include erpnext *.txt
+>>>>>>> c111a372a2e38b92c2c61401b52270767696d158
 recursive-include erpnext *.css
 recursive-include erpnext *.csv
 recursive-include erpnext *.html
@@ -16,5 +19,10 @@ recursive-include erpnext *.md
 recursive-include erpnext *.png
 recursive-include erpnext *.py
 recursive-include erpnext *.svg
+<<<<<<< HEAD
+recursive-include erpnext *.txt
+recursive-exclude erpnext *.pyc
+=======
 recursive-include erpnext/public *
 recursive-exclude * *.pyc
+>>>>>>> c111a372a2e38b92c2c61401b52270767696d158
