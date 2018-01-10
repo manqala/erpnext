@@ -56,7 +56,12 @@ def get_data():
 					"name": "Stock Ageing",
 					"doctype": "Item",
 				},
-
+				{
+					"type": "report",
+					"is_query_report": True,
+					"name": "Item Price Stock",
+					"doctype": "Item",
+				}
 			]
 		},
 		{
@@ -130,6 +135,16 @@ def get_data():
 					"name": "Serial No Warranty Expiry",
 					"doctype": "Serial No"
 				},
+			]
+		},
+		{
+			"label": _("Fulfilment"),
+			"items": [
+				{
+					"type": "doctype",
+					"name": "Delivery Trip",
+					"description": _("Delivery Trip service tours to customers.")
+				}
 			]
 		},
 		{

@@ -50,7 +50,7 @@ erpnext.pos.PointOfSale = class PointOfSale {
 				this.set_online_status();
 			},
 			() => this.setup_company(),
-			() => this.setup_pos_profile(),
+
 			() => this.make_new_invoice(),
 			() => {
 				frappe.dom.unfreeze();
@@ -90,7 +90,6 @@ erpnext.pos.PointOfSale = class PointOfSale {
 		this.cart = new POSCart({
 			frm: this.frm,
 			wrapper: this.wrapper.find('.cart-container'),
-			pos_profile: this.pos_profile,
 			events: {
 				on_customer_change: (customer) => this.frm.set_value('customer', customer),
 				on_field_change: (item_code, field, value) => {
@@ -141,7 +140,7 @@ erpnext.pos.PointOfSale = class PointOfSale {
 	make_items() {
 		this.items = new POSItems({
 			wrapper: this.wrapper.find('.item-container'),
-			pos_profile: this.pos_profile,
+			frm: this.frm,
 			events: {
 				update_cart: (item, field, value) => {
 					if(!this.frm.doc.customer) {
@@ -169,7 +168,12 @@ erpnext.pos.PointOfSale = class PointOfSale {
 				value = item.serial_no + '\n'+ value;
 			}
 
-			if(field === 'qty' && (item.serial_no || item.batch_no)) {
+			// if actual_batch_qty and actual_qty if there is only one batch. In such
+			// a case, no point showing the dialog
+			const show_dialog = item.has_serial_no || item.has_batch_no;
+
+			if (show_dialog && field == 'qty' && ((!item.batch_no && item.has_batch_no) ||
+				(item.has_serial_no) || (item.actual_batch_qty != item.actual_qty)) ) {
 				this.select_batch_and_serial_no(item);
 			} else {
 				this.update_item_in_frm(item, field, value)
@@ -189,31 +193,51 @@ erpnext.pos.PointOfSale = class PointOfSale {
 		// add to cur_frm
 		const item = this.frm.add_child('items', args);
 		frappe.flags.hide_serial_batch_dialog = true;
-		this.frm.script_manager
-			.trigger('item_code', item.doctype, item.name)
-			.then(() => {
+
+		frappe.run_serially([
+			() => this.frm.script_manager.trigger('item_code', item.doctype, item.name),
+			() => {
 				const show_dialog = item.has_serial_no || item.has_batch_no;
-				if (show_dialog && field == 'qty') {
+
+				// if actual_batch_qty and actual_qty if then there is only one batch. In such
+				// a case, no point showing the dialog
+				if (show_dialog && field == 'qty' && ((!item.batch_no && item.has_batch_no) ||
+					(item.has_serial_no) || (item.actual_batch_qty != item.actual_qty)) ) {
 					// check has serial no/batch no and update cart
 					this.select_batch_and_serial_no(item);
 				} else {
 					// update cart
 					this.update_cart_data(item);
 				}
-			});
+			}
+		]);
 	}
 
 	select_batch_and_serial_no(item) {
+		frappe.dom.unfreeze();
+
 		erpnext.show_serial_batch_selector(this.frm, item, () => {
-			this.update_item_in_frm(item)
+			this.update_item_in_frm(item, 'qty', item.qty)
 				.then(() => {
 					// update cart
-					if (item.qty === 0) {
-						frappe.model.clear_doc(item.doctype, item.name);
-					}
-					this.update_cart_data(item);
+					frappe.run_serially([
+						() => {
+							if (item.qty === 0) {
+								frappe.model.clear_doc(item.doctype, item.name);
+							}
+						},
+						() => this.update_cart_data(item)
+					]);
 				});
+		}, () => {
+			this.on_close(item);
 		}, true);
+	}
+
+	on_close(item) {
+		if (!this.cart.exists(item.item_code) && item.qty) {
+			frappe.model.clear_doc(item.doctype, item.name);
+		}
 	}
 
 	update_cart_data(item) {
@@ -292,68 +316,69 @@ erpnext.pos.PointOfSale = class PointOfSale {
 		})
 	}
 
-	setup_pos_profile() {
+	change_pos_profile() {
 		return new Promise((resolve) => {
-
-			const load_default = () => {
-				this.pos_profile = {
-					company: this.company,
-					currency: frappe.defaults.get_default('currency'),
-					selling_price_list: frappe.defaults.get_default('selling_price_list')
-				};
-				resolve();
-			}
-
-			const on_submit = ({ pos_profile }) => {
-				this.get_pos_profile_doc(pos_profile)
-					.then(doc => {
-						this.pos_profile = doc;
-						if (!this.pos_profile) {
-							load_default();
-						}
-						resolve();
-					});
-			}
-
-			frappe.call({
-				method: 'erpnext.accounts.doctype.pos_profile.pos_profile.get_pos_profiles_for_user'
-			}).then((r) => {
-				if (r && r.message) {
-					const pos_profiles = r.message.filter(a => a);
-
-					if (pos_profiles.length === 0) {
-						load_default();
-					} else if(pos_profiles.length === 1) {
-						// load profile directly
-						on_submit({pos_profile: pos_profiles[0]});
-					} else {
-						// ask prompt
-						frappe.prompt(
-							[{ fieldtype: 'Select', label: 'POS Profile', options: pos_profiles }],
-							on_submit,
-							__('Select POS Profile')
-						);
-					}
-				} else {
-					frappe.dom.unfreeze();
-					frappe.throw(__("POS Profile is required to use Point-of-Sale"));
+			const on_submit = ({ pos_profile, set_as_default }) => {
+				if (pos_profile) {
+					this.pos_profile = pos_profile;
 				}
-			});
+
+				if (set_as_default) {
+					frappe.call({
+						method: "erpnext.accounts.doctype.pos_profile.pos_profile.set_default_profile",
+						args: {
+							'pos_profile': pos_profile,
+							'company': this.frm.doc.company
+						}
+					}).then(() => {
+						this.on_change_pos_profile();
+					});
+				} else {
+					this.on_change_pos_profile();
+				}
+			}
+
+			frappe.prompt(this.get_promopt_fields(),
+				on_submit,
+				__('Select POS Profile')
+			);
 		});
 	}
 
-	get_pos_profile_doc(pos_profile_name) {
-		return new Promise(resolve => {
-			frappe.call({
-				method: 'erpnext.accounts.doctype.pos_profile.pos_profile.get_pos_profile',
-				args: {
-					pos_profile_name
-				},
-				callback: (r) => {
-					resolve(r.message);
-				}
-			});
-		});
+	on_change_pos_profile() {
+		return frappe.run_serially([
+			() => this.make_sales_invoice_frm(),
+			() => {
+				this.frm.doc.pos_profile = this.pos_profile;
+				this.set_pos_profile_data()
+					.then(() => {
+						this.reset_cart();
+						if (this.items) {
+							this.items.reset_items();
+						}
+					});
+			}
+		]);
+	}
+
+	get_promopt_fields() {
+		return [{
+			fieldtype: 'Link',
+			label: __('POS Profile'),
+			options: 'POS Profile',
+			reqd: 1,
+			get_query: () => {
+				return {
+					query: 'erpnext.accounts.doctype.pos_profile.pos_profile.pos_profile_query',
+					filters: {
+						company: this.frm.doc.company
+					}
+				};
+			}
+		}, {
+			fieldtype: 'Check',
+			label: __('Set as default')
+		}];
 	}
 
 	setup_company() {
@@ -373,68 +398,77 @@ erpnext.pos.PointOfSale = class PointOfSale {
 
 	make_new_invoice() {
 		return frappe.run_serially([
+			() => this.make_sales_invoice_frm(),
+			() => this.set_pos_profile_data(),
 			() => {
-				this.make_sales_invoice_frm()
-					.then(() => this.set_pos_profile_data())
-					.then(() => {
-						if (this.cart) {
-							this.cart.frm = this.frm;
-							this.cart.reset();
-							this.items.reset_search_field();
-						} else {
-							this.make_items();
-							this.make_cart();
-						}
-						this.toggle_editing(true);
-					})
+				if (this.cart) {
+					this.cart.frm = this.frm;
+					this.cart.reset();
+				} else {
+					this.make_items();
+					this.make_cart();
+				}
+				this.toggle_editing(true);
 			},
 		]);
+	}
+
+	reset_cart() {
+		this.cart.frm = this.frm;
+		this.cart.reset();
+		this.items.reset_search_field();
 	}
 
 	make_sales_invoice_frm() {
 		const doctype = 'Sales Invoice';
 		return new Promise(resolve => {
 			if (this.frm) {
-				this.frm = get_frm(this.pos_profile, this.frm);
+				this.frm = get_frm(this.frm);
 				resolve();
 			} else {
 				frappe.model.with_doctype(doctype, () => {
-					this.frm = get_frm(this.pos_profile);
+					this.frm = get_frm();
 					resolve();
 				});
 			}
 		});
 
-		function get_frm(pos_profile, _frm) {
+		function get_frm(_frm) {
 			const page = $('<div>');
 			const frm = _frm || new _f.Frm(doctype, page, false);
 			const name = frappe.model.make_new_doc_and_get_name(doctype, true);
 			frm.refresh(name);
 			frm.doc.items = [];
-			if(!frm.doc.company) {
-				frm.set_value('company', pos_profile.company);
-			}
 			frm.doc.is_pos = 1;
 			return frm;
 		}
 	}
 
 	set_pos_profile_data() {
+		this.frm.doc.company = this.company;
+
 		return new Promise(resolve => {
 			return this.frm.call({
 				doc: this.frm.doc,
 				method: "set_missing_values",
 			}).then((r) => {
 				if(!r.exc) {
+					if (!this.frm.doc.pos_profile) {
+						frappe.dom.unfreeze();
+						frappe.throw(__("POS Profile is required to use Point-of-Sale"));
+					}
 					this.frm.script_manager.trigger("update_stock");
 					frappe.model.set_default_values(this.frm.doc);
 					this.frm.cscript.calculate_taxes_and_totals();
-					this.frm.meta.default_print_format = r.message.print_format || 'POS Invoice';
+
+					if (r.message) {
+						this.frm.meta.default_print_format = r.message.print_format || 'POS Invoice';
+					}
 				}
 
 				resolve();
-			})
-		})
+			});
+		});
 	}
 
 	prepare_menu() {
@@ -458,6 +492,10 @@ erpnext.pos.PointOfSale = class PointOfSale {
 		this.page.add_menu_item(__('POS Settings'), function() {
 			frappe.set_route('Form', 'POS Settings');
 		});
+
+		this.page.add_menu_item(__('Change POS Profile'), function() {
+			me.change_pos_profile();
+		});
 	}
 
 	set_form_action() {
@@ -478,12 +516,11 @@ erpnext.pos.PointOfSale = class PointOfSale {
 };
 
 class POSCart {
-	constructor({frm, wrapper, pos_profile, events}) {
+	constructor({frm, wrapper, events}) {
 		this.frm = frm;
 		this.item_data = {};
 		this.wrapper = wrapper;
 		this.events = events;
-		this.pos_profile = pos_profile;
 		this.make();
 		this.bind_events();
 	}
@@ -549,7 +586,7 @@ class POSCart {
 		this.wrapper.find('.grand-total-value').text(
 			format_currency(this.frm.doc.grand_total, this.frm.currency));
 
-		const customer = this.frm.doc.customer || this.pos_profile.customer;
+		const customer = this.frm.doc.customer;
 		this.customer_field.set_value(customer);
 	}
 
@@ -637,7 +674,6 @@ class POSCart {
 	}
 
 	make_customer_field() {
-		let customer = this.frm.doc.customer || this.pos_profile['customer'];
 		this.customer_field = frappe.ui.form.make_control({
 			df: {
 				fieldtype: 'Link',
@@ -645,6 +681,11 @@ class POSCart {
 				fieldname: 'customer',
 				options: 'Customer',
 				reqd: 1,
+				get_query: function() {
+					return {
+						query: 'erpnext.controllers.queries.customer_query'
+					}
+				},
 				onchange: () => {
 					this.events.on_customer_change(this.customer_field.get_value());
 				}
@@ -653,9 +694,7 @@ class POSCart {
 			render_input: true
 		});
 
-		if (customer) {
-			this.customer_field.set_value(customer);
-		}
+		this.customer_field.set_value(this.frm.doc.customer);
 	}
 
 	make_numpad() {
@@ -727,7 +766,7 @@ class POSCart {
 		if (this.exists(item.item_code)) {
 			// update quantity
 			this.update_item(item);
-		} else {
+		} else if (flt(item.qty) > 0.0) {
 			// add to cart
 			const $item = $(this.get_item_html(item));
 			$item.appendTo(this.$cart_items);
@@ -920,19 +959,22 @@ class POSCart {
 }
 
 class POSItems {
-	constructor({wrapper, pos_profile, events}) {
+	constructor({wrapper, frm, events}) {
 		this.wrapper = wrapper;
-		this.pos_profile = pos_profile;
+		this.frm = frm;
 		this.items = {};
 		this.events = events;
-		this.currency = this.pos_profile.currency;
+		this.currency = this.frm.doc.currency;
 
 		this.make_dom();
 		this.make_fields();
 
 		this.init_clusterize();
 		this.bind_events();
+		this.load_items_data();
+	}
 
+	load_items_data() {
 		// bootstrap with 20 items
 		this.get_items()
 			.then(({ items }) => {
@@ -940,6 +982,12 @@ class POSItems {
 				this.items = items;
 				this.render_items(items);
 			});
+	}
+
+	reset_items() {
+		this.wrapper.find('.pos-items').empty();
+		this.init_clusterize();
+		this.load_items_data();
 	}
 
 	make_dom() {
@@ -968,7 +1016,7 @@ class POSItems {
 		this.search_field = frappe.ui.form.make_control({
 			df: {
 				fieldtype: 'Data',
-				label: 'Search Item ( Ctrl + i )',
+				label: 'Search Item (Ctrl + i)',
 				placeholder: 'Search by item code, serial number, batch no or barcode'
 			},
 			parent: this.wrapper.find('.search-field'),
@@ -999,6 +1047,14 @@ class POSItems {
 						this.filter_items({ item_group: item_group });
 					}
 				},
+				get_query: () => {
+					return {
+						query: 'erpnext.selling.page.point_of_sale.point_of_sale.item_group_query',
+						filters: {
+							pos_profile: this.frm.doc.pos_profile
+						}
+					};
+				}
 			},
 			parent: this.wrapper.find('.item-group-field'),
 			render_input: true
@@ -1032,7 +1088,7 @@ class POSItems {
 			}
 			curr_row += all_items[i];
 
-			if(i == all_items.length - 1 && all_items.length % 4 !== 0) {
+			if(i == all_items.length - 1) {
 				row_items.push(curr_row);
 			}
 		}
@@ -1162,12 +1218,14 @@ class POSItems {
 		return new Promise(res => {
 			frappe.call({
 				method: "erpnext.selling.page.point_of_sale.point_of_sale.get_items",
+				freeze: true,
 				args: {
 					start,
 					page_length,
-					'price_list': this.pos_profile.selling_price_list,
+					'price_list': this.frm.doc.selling_price_list,
 					item_group,
-					search_value
+					search_value,
+					'pos_profile': this.frm.doc.pos_profile
 				}
 			}).then(r => {
 				// const { items, serial_no, batch_no } = r.message;

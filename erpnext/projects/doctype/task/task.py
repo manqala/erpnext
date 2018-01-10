@@ -148,30 +148,6 @@ def check_if_child_exists(name):
 	return frappe.db.sql("""select name from `tabTask`
 		where parent_task = %s""", name)
 
-@frappe.whitelist()
-def get_events(start, end, filters=None):
-	"""Returns events for Gantt / Calendar view rendering.
-
-	:param start: Start date-time.
-	:param end: End date-time.
-	:param filters: Filters (JSON).
-	"""
-	from frappe.desk.calendar import get_event_conditions
-	conditions = get_event_conditions("Task", filters)
-
-	data = frappe.db.sql("""select name, exp_start_date, exp_end_date,
-		subject, status, project from `tabTask`
-		where ((ifnull(exp_start_date, '0000-00-00')!= '0000-00-00') \
-				and (exp_start_date <= %(end)s) \
-			or ((ifnull(exp_end_date, '0000-00-00')!= '0000-00-00') \
-				and exp_end_date >= %(start)s))
-		{conditions}""".format(conditions=conditions), {
-			"start": start,
-			"end": end
-		}, as_dict=True, update={"allDay": 0})
-
-	return data
-
 def get_project(doctype, txt, searchfield, start, page_len, filters):
 	from erpnext.controllers.queries import get_match_cond
 	return frappe.db.sql(""" select name from `tabProject`
@@ -226,25 +202,26 @@ def get_children(doctype, parent, task=None, project=None, is_root=False):
 
 @frappe.whitelist()
 def add_node():
-    from frappe.desk.treeview import make_tree_args
-    args = frappe.form_dict
-    args.update({
-    	"name_field": "subject"
-    })
-    args = make_tree_args(**args)
+	from frappe.desk.treeview import make_tree_args
+	args = frappe.form_dict
+	args.update({
+		"name_field": "subject"
+	})
+	args = make_tree_args(**args)
 
-    if args.parent_task == 'All Tasks':
-        args.parent_task = None
+	if args.parent_task == 'All Tasks' or args.parent_task == args.project:
+		args.parent_task = None
 
-    frappe.get_doc(args).insert()
+	frappe.get_doc(args).insert()
 
 @frappe.whitelist()
 def add_multiple_tasks(data, parent):
-    data = json.loads(data)['tasks']
-    tasks = data.split('\n')
-    new_doc = {'doctype': 'Task', 'parent_task': parent}
+	data = json.loads(data)['tasks']
+	tasks = data.split('\n')
+	new_doc = {'doctype': 'Task', 'parent_task': parent}
+	new_doc['project'] = frappe.db.get_value('Task', {"name": parent}, 'project')
 
-    for d in tasks:
-        new_doc['subject'] = d
-        new_task = frappe.get_doc(new_doc)
-        new_task.insert()
+	for d in tasks:
+		new_doc['subject'] = d
+		new_task = frappe.get_doc(new_doc)
+		new_task.insert()

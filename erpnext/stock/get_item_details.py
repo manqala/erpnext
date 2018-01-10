@@ -84,6 +84,9 @@ def get_item_details(args):
 
 		if out.has_batch_no and not args.get("batch_no"):
 			out.batch_no = get_batch_no(out.item_code, out.warehouse, out.qty)
+			actual_batch_qty = get_batch_qty(out.batch_no, out.warehouse, out.item_code)
+			if actual_batch_qty:
+				out.update(actual_batch_qty)
 
 	if args.transaction_date and item.lead_time_days:
 		out.schedule_date = out.lead_time_date = add_days(args.transaction_date,
@@ -152,6 +155,7 @@ def get_basic_details(args, item):
 			"conversion_rate": 1.0,
 			"selling_price_list": None,
 			"price_list_currency": None,
+			"price_list_uom_dependant": None,
 			"plc_conversion_rate": 1.0,
 			"doctype": "",
 			"name": "",
@@ -239,7 +243,10 @@ def get_basic_details(args, item):
 		"supplier": item.default_supplier,
 		"update_stock": args.get("update_stock") if args.get('doctype') in ['Sales Invoice', 'Purchase Invoice'] else 0,
 		"delivered_by_supplier": item.delivered_by_supplier if args.get("doctype") in ["Sales Order", "Sales Invoice"] else 0,
-		"is_fixed_asset": item.is_fixed_asset
+		"is_fixed_asset": item.is_fixed_asset,
+		"weight_per_unit":item.weight_per_unit,
+		"weight_uom":item.weight_uom,
+		"last_purchase_rate": item.last_purchase_rate if args.get("doctype") in ["Purchase Order"] else 0
 	})
 
 	# calculate conversion factor
@@ -251,6 +258,10 @@ def get_basic_details(args, item):
 
 	args.conversion_factor = out.conversion_factor
 	out.stock_qty = out.qty * out.conversion_factor
+
+	# calculate last purchase rate
+	from erpnext.buying.doctype.purchase_order.purchase_order import item_last_purchase_rate
+	out.last_purchase_rate = item_last_purchase_rate(args.name, args.conversion_rate, item.item_code, out.conversion_factor)
 
 	# if default specified in item is for another company, fetch from company
 	for d in [
@@ -306,8 +317,8 @@ def get_price_list_rate(args, item_doc, out):
 
 		out.price_list_rate = flt(price_list_rate) * flt(args.plc_conversion_rate) \
 			/ flt(args.conversion_rate)
-
-		out.price_list_rate = flt(out.price_list_rate * (args.conversion_factor or 1.0))
+		if not args.price_list_uom_dependant:
+			out.price_list_rate = flt(out.price_list_rate * (args.conversion_factor or 1.0))
 
 		if not out.price_list_rate and args.transaction_type=="buying":
 			from erpnext.stock.doctype.item.item import get_last_purchase_details
@@ -394,7 +405,7 @@ def get_pos_profile_item_details(company, args, pos_profile=None):
 	res = frappe._dict()
 
 	if not pos_profile:
-		pos_profile = get_pos_profile(company)
+		pos_profile = get_pos_profile(company, args.get('pos_profile'))
 
 	if pos_profile:
 		for fieldname in ("income_account", "cost_center", "warehouse", "expense_account"):
@@ -408,16 +419,31 @@ def get_pos_profile_item_details(company, args, pos_profile=None):
 	return res
 
 @frappe.whitelist()
-def get_pos_profile(company):
-	pos_profile = frappe.db.sql("""select * from `tabPOS Profile` where user = %s
-		 and company = %s""", (frappe.session['user'], company), as_dict=1)
+def get_pos_profile(company, pos_profile=None, user=None):
+	if pos_profile:
+		return frappe.get_doc('POS Profile', pos_profile)
+
+	if not user:
+		user = frappe.session['user']
+
+	pos_profile = frappe.db.sql("""select pf.*
+		from
+			`tabPOS Profile` pf, `tabPOS Profile User` pfu
+		where
+			pfu.parent = pf.name and pfu.user = %s and pf.company = %s
+			and pf.disabled = 0 and pfu.default=1""", (user, company), as_dict=1)
 
 	if not pos_profile:
-		pos_profile = frappe.db.sql("""select * from `tabPOS Profile`
-			where ifnull(user,'') = '' and company = %s""", company, as_dict=1)
+		pos_profile = frappe.db.sql("""select pf.*
+			from
+				`tabPOS Profile` pf left join `tabPOS Profile User` pfu
+			on
+				pf.name = pfu.parent
+			where
+				ifnull(pfu.user, '') = '' and pf.company = %s
+				and pf.disabled = 0""", (company), as_dict=1)
 
 	return pos_profile and pos_profile[0] or None
-
 
 def get_serial_nos_by_fifo(args):
 	if frappe.db.get_single_value("Stock Settings", "automatically_set_serial_nos_based_on_fifo"):
@@ -484,6 +510,7 @@ def apply_price_list(args, as_doc=False):
 			"conversion_rate": 1.0,
 			"selling_price_list": None,
 			"price_list_currency": None,
+			"price_list_uom_dependant": None,
 			"plc_conversion_rate": 1.0,
 			"doctype": "",
 			"name": "",
@@ -510,7 +537,7 @@ def apply_price_list(args, as_doc=False):
 			children.append(item_details)
 
 	if as_doc:
-		args.price_list_currency = parent.price_list_currency
+		args.price_list_currency = parent.price_list_currency,
 		args.plc_conversion_rate = parent.plc_conversion_rate
 		if args.get('items'):
 			for i, item in enumerate(args.get('items')):
@@ -545,11 +572,23 @@ def get_price_list_currency(price_list):
 
 		return result.currency
 
+def get_price_list_uom_dependant(price_list):
+	if price_list:
+		result = frappe.db.get_value("Price List", {"name": price_list,
+			"enabled": 1}, ["name", "price_not_uom_dependant"], as_dict=True)
+
+		if not result:
+			throw(_("Price List {0} is disabled or does not exist").format(price_list))
+
+		return result.price_not_uom_dependant
+
+
 def get_price_list_currency_and_exchange_rate(args):
 	if not args.price_list:
 		return {}
 
 	price_list_currency = get_price_list_currency(args.price_list)
+	price_list_uom_dependant = get_price_list_uom_dependant(args.price_list)
 	plc_conversion_rate = args.plc_conversion_rate
 
 	if (not plc_conversion_rate) or (price_list_currency and args.price_list_currency \
@@ -560,6 +599,7 @@ def get_price_list_currency_and_exchange_rate(args):
 
 	return frappe._dict({
 		"price_list_currency": price_list_currency,
+		"price_list_uom_dependant": price_list_uom_dependant,
 		"plc_conversion_rate": plc_conversion_rate
 	})
 

@@ -78,11 +78,11 @@ class ItemGroup(NestedSet, WebsiteGenerator):
 
 @frappe.whitelist(allow_guest=True)
 def get_product_list_for_group(product_group=None, start=0, limit=10, search=None):
-	child_groups = ", ".join(['"' + i[0] + '"' for i in get_child_groups(product_group)])
+	child_groups = ", ".join(['"' + frappe.db.escape(i[0]) + '"' for i in get_child_groups(product_group)])
 
 	# base query
 	query = """select I.name, I.item_name, I.item_code, I.route, I.image, I.website_image, I.thumbnail, I.item_group,
-			I.description, I.web_long_description as website_description,
+			I.description, I.web_long_description as website_description, I.is_stock_item,
 			case when (S.actual_qty - S.reserved_qty) > 0 then 1 else 0 end as in_stock
 		from `tabItem` I
 		left join tabBin S on I.item_code = S.item_code and I.website_warehouse = S.warehouse
