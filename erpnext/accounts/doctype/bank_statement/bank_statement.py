@@ -166,6 +166,7 @@ class BankStatement(Document):
 	def get_account_no(self):
 		bank = frappe.get_doc("Bank", self.bank)
 		ret_dict = {
+			'account_types': get_account_types(),
 			'acc_nos': [acc.account_number for acc in bank.bank_accounts],
 			'currency_map': {acc.account_number:acc.currency for acc in bank.bank_accounts}
 		}
@@ -304,3 +305,9 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn_descri
 		except OperationalError, ValidationError:
 			continue
 	return found_documents
+
+
+def get_account_types():
+	acc_dt = frappe.get_doc('DocType', 'Account')
+	field = [f for f in acc_dt.__dict__['fields'] if f.__dict__['fieldname'] == 'account_type'][0]
+	return field.__dict__['options']
