@@ -131,7 +131,7 @@ class BankStatement(Document):
 			intermediate_bank_statement_items.append(bank_sta_item) if bank_sta_item else None
 
 		for idx, sta in enumerate(intermediate_bank_statement_items):
-			sta['transaction_type'] = processs_statement(self, idx+1, sta)
+			sta['transaction_type'] = get_txn_type(self, idx+1, sta)
 			self.append('bank_statement_items', sta)  # create bank_statement_item table entries
 
 		self.save()
@@ -174,6 +174,7 @@ class BankStatement(Document):
 
 	def process_statement(self):
 		allocated_entries = []
+		processed_rows = []
 		for bank_statement_item in self.bank_statement_items:
 			if not bank_statement_item.transaction_type: continue
 			txn_type = frappe.get_doc('Bank Transaction Type', bank_statement_item.transaction_type)
@@ -181,15 +182,18 @@ class BankStatement(Document):
 				# create new item in bank_statement_item.third_party_journal_items
 				# set debit_account_type of newly created third_party_journal_item to 
 				# bank_statement_item.txn_type.debit_account_party_type
-				if True:
+				if not txn_type.debit_account:
 					dr_open_items = get_open_third_party_documents_using_search_fields(
 						txn_type.search_fields_third_party_doc_dr, bank_statement_item, allocated_entries
 					)
+					print '\n\n\n', 'dr_open_items: \n', dr_open_items, '\n\n\n'
 					if len(dr_open_items) >= 1:
+						print '\n\n\n', 'dr_open_items[0]: \n', dr_open_items[0], '\n\n\n'
 						# set debit_account of of newly created third_party_journal_item to
 						# dr_open_items[0].third_party
 						bank_statement_item.jl_credit_account = dr_open_items[0].account
 						allocated_entries.append(dr_open_items[0].gl_entry)
+						processed_rows.append(str(bank_statement_item.idx))
 					else:
 						continue
 				else:
@@ -201,21 +205,30 @@ class BankStatement(Document):
 				# create new item in bank_statement_item.third_party_journal_items
 				# set credit_account_type of newly created third_party_journal_item to
 				# bank_statement_item.txn_type.credit_account_party_type
-				if True:
+				if not txn_type.credit_account:
 					cr_open_items = get_open_third_party_documents_using_search_fields(
 						txn_type.search_fields_third_party_doc_cr, bank_statement_item, allocated_entries
 					)
+					print '\n\n\n', 'cr_open_items: \n', cr_open_items, '\n\n\n'
 					if len(cr_open_items) >= 1:
+						print '\n\n\n', 'cr_open_items[0]: \n', cr_open_items[0], '\n\n\n'
 						# set credit_account of of newly created third_party_journal_item to
 						# cr_open_items[0].third_party
 						bank_statement_item.jl_credit_account = cr_open_items[0].account
+						bank_statement_item.jl_credit_account_type = frappe.db.get_value(
+							'Account', cr_open_items[0].account,'account_type')
 						allocated_entries.append(cr_open_items[0].gl_entry)
+						processed_rows.append(str(bank_statement_item.idx))
 					else:
 						continue
 			else :
 				# set credit_account of of newly created third_party_journal_item to
 				# bank_statement_item.txn_type.credit_account
 				bank_statement_item.jl_credit_account = txn_type.credit_account
+		if processed_rows:
+			frappe.msgprint('The following rows were processed: <br> row {}'.format(', '.join(processed_rows)))
+		else:
+			frappe.msgprint('0 rows processed', indicator='red')
 		self.save()
 
 def get_source_abbr(source_field, bank_statement_mapping_items):
@@ -240,7 +253,9 @@ def get_ret_msg(ret_list):
 		frappe.msgprint(ret_msg)
 
 
-def processs_statement(self, idx, itm):
+def get_txn_type(self, idx, itm):
+	'''search transaction_description to match transaction type'''
+
 	itm = frappe._dict(itm)
 	ret_list = []
 	txn_type_derivation = frappe.db.get_value("Bank Statement Format", self.bank_statement_format, 'txn_type_derivation')
@@ -259,7 +274,7 @@ def processs_statement(self, idx, itm):
 		re_flag = 0
 		for i,d in [('ignore_case', re.I), ('dot_all', re.S), ('multi_line', re.M)]:
 			if txn_type.get(i): re_flag = re_flag | d
-		txn_match = re.search(txn_type.transaction_type_match_expression, itm.transaction_description, flags=re_flag)
+		txn_match = search_text(txn_type.transaction_type_match_expression, itm.transaction_description, flags=re_flag)
 		if txn_match:
 			match_type.append(txn_type)
 	
@@ -282,17 +297,18 @@ def make_query(pairs):
 	return query
 
 def get_open_third_party_documents_using_search_fields(search_fields, txn, allocated_entries=[]):
-	from numbers import Real
 	from _mysql_exceptions import OperationalError
 	from frappe.exceptions import ValidationError
 	from erpnext.accounts.doctype.payment_request.payment_request import get_amount
 
+	print_variables(['search_fields', 'txn.__dict__', 'allocated_entries'], locals())
+
+	matches = []
 	found_documents = []
 	sta_format = frappe.db.get_value(txn.parenttype, txn.parent, 'bank_statement_format')
 	sta_itm_fields = frappe.db.sql("select target_field from `tabBank Statement Mapping Item` \
 									where parent = '{}'".format(sta_format))
 	sta_itm_fields = [frappe.scrub(x[0]) for x in sta_itm_fields]
-	matches = []
 	for s_field in search_fields:
 		#search for all documents in general ledger where outstanding amount <> 0 and value of search_field in document is 
 		#contained in txn_description. Append result to found_documents
@@ -301,52 +317,97 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn, alloc
 			query = """select name, account, against_voucher,against_voucher_type,{0} from `tabGL Entry` where
 							against_voucher_type IS NOT NULL{1}""".format(search_field, make_query(matches))
 			result = frappe.db.sql(query, as_dict=1)
+
+			print_variables(['s_field.__dict__', 'search_field', 'matches', 'query', 'result'], locals())
+
 			if not result: continue
 			for res in result:
+				if res.name in allocated_entries: continue
 				dt,dn = res.against_voucher_type, res.against_voucher
-				# this throws an error if the amount is not greater than 0
 
+				# this throws an error if the amount is not greater than 0
 				#amt_outstanding = get_amount(frappe.get_doc(dt,dn), dt)
 
 				# match the search field content in any order, can be separated by space or underscore('pet cat' or 'cat_pet')
 				# avoid using '.' or - in searches, to avoid conflict with re operation
 				txn_match = res.get(search_field)
-				search_lst = isinstance(txn_match, basestring) and txn_match.replace('-','_').replace('.','_').split('_') \
-								or [str(txn_match).replace('.','').replace('-','')]
-				search_lst = map(lambda x:'(?:{})'.format(x), search_lst) # create re search groups like (?:xyz)
-				search_txt = '|'.join(search_lst)  # check for any occurences with or operator |
-				search_txt = '(?:{}|[\s_\B.\-])+'.format(search_txt)  # a search group within another group 
-				found = re.findall(r'{}'.format(search_txt), txn.transaction_description, re.I)
+				found = search_text(txn_match, txn.transaction_description)
+
+				match_pair = dict()
 
 				for field in sta_itm_fields:
 					field_val = txn.get(field)
-					if isinstance(txn_match, Real): txn_match = frappe.utils.cint(txn_match * 100)
-					if isinstance(txn.get(field), Real): field_val = frappe.utils.cint(field_val * 100)
+					if is_float(txn_match) and is_float(field_val): txn_match = int(float(txn_match) * 100)
+					if is_float(txn.get(field)): field_val = int(float(field_val) * 100)
 					if str(txn_match) == str(field_val):
-						if res.name in allocated_entries: continue
 						match_pair = {search_field: res.get(search_field)}
 						if not match_pair in matches: matches.append(match_pair)
 
 
-				#if not found: continue
+				print_variables(['res', 'txn_match', 'match_pair', 'found'], locals())
 
-				# avoid matching substrings of key words
-				min_len = len(sorted(search_lst, key=len)[0])
-				found = map(lambda x:x.strip() if isinstance(x, basestring) else x, found)
-				found = filter(lambda x:len(x)>min_len if x else x, found)
-
-				#if not found: continue
+				# check mandatory search fields
+				if s_field.mandatory and not match_pair: continue
+				if not (found or match_pair): continue
 
 				ret_dict = frappe._dict({'doc':frappe.get_doc(dt,dn), 'account':res.account, 'gl_entry': res.name})
-				if not ret_dict in found_documents: found_documents.append(ret_dict)
+				found_docs_tuple = [(f.account, f.gl_entry) for f in found_documents]
+				if not (ret_dict.account, ret_dict.gl_entry) in found_docs_tuple: found_documents.append(ret_dict)
 		except OperationalError, ValidationError:
 			continue
-	if len(matches) == len(search_fields):
-		return found_documents
-	return []
+	return found_documents
 
 
 def get_account_types():
 	acc_dt = frappe.get_doc('DocType', 'Account')
 	field = [f for f in acc_dt.get('fields') if f.get('fieldname') == 'account_type'][0]
 	return field.get('options')
+
+def search_text(text, base_text, flags=0):
+	'''Search base_text for occurences of text
+	words can be matched on any order and seperated by - _ space or . '''
+
+	import re
+
+	if not text or not base_text: return
+
+	if not isinstance(base_text, basestring): base_text = str(base_text)
+	text = isinstance(text, basestring) and text or str(text)
+
+	if is_float(text):
+		if is_float(text).is_integer():
+			text = str(int(float(text)))
+
+	search_lst = re.findall(r"[\w'\\\._-]+", text.replace('.', r'\.')) # split according to words including back slash
+	search_grp = ['(?:{})'.format(x) for x in search_lst] # create re search groups like (?:xyz)
+	search_txt = '|'.join(search_grp)  # check for any occurences with or operator |
+	search_txt = r'(?:{}|[\s\B._-])+'.format(search_txt)  # a search group within another group 
+	found = re.findall(search_txt, base_text, flags=flags) or []
+
+	txt_lst = [x.replace('\\','') for x in search_lst]    # remove the backslashes
+	min_len = txt_lst and len(sorted(txt_lst, key=len)[0]) or 1
+	found = [x.strip() for x in found if isinstance(x, basestring) and len(x)>=min_len]
+
+	match = all([txt.lower() in ' '.join(found).lower() for txt in txt_lst])
+	if match: return found
+
+def print_variables(var_list, local={}):
+	'''Print list of variable to terminal'''
+	if not isinstance(var_list, list): return
+	if not isinstance(local, dict): local = local()
+	for var in var_list:
+		name = var
+		var = local.get(name)
+		if '.' in name:
+			var = local.get(name.split('.')[0])
+			for atr in name.split('.')[1:]:
+				var = getattr(var, atr, None)
+				if '()' in atr: var = getattr(var, atr, None)()
+			name = name.split('.')[0]
+		print '\n\n', '{}: \n'.format(name), var, '\n\n'
+
+def is_float(value):
+	try:
+		return float(value)
+	except (ValueError, TypeError):
+		return False

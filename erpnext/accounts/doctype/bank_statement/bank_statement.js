@@ -25,6 +25,10 @@ frappe.ui.form.on('Bank Statement', {
 				doc: frm.doc,
 				freeze: true,
 				callback: function(r){
+					var set_margin = function(){
+						$('.msgprint hr').attr('style', 'margin: 3px');
+					}
+					setTimeout(set_margin, 300);
 					frm.refresh_field('bank_statement_items');
 				}
 			})
