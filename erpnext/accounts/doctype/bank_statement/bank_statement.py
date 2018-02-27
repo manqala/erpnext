@@ -312,7 +312,7 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn, alloc
 	for s_field in search_fields:
 		#search for all documents in general ledger where outstanding amount <> 0 and value of search_field in document is 
 		#contained in txn_description. Append result to found_documents
-		search_field = '_'.join(s_field.field_name.replace(' ','_').split(' ')).lower()
+		search_field = '_'.join(s_field.field_name.split()).lower()
 		try:
 			query = """select name, account, against_voucher,against_voucher_type,{0} from `tabGL Entry` where
 							against_voucher_type IS NOT NULL{1}""".format(search_field, make_query(matches))
