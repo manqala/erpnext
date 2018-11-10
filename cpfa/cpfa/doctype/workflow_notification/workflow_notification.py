@@ -123,7 +123,7 @@ def return_action_confirmation_page(doc, action, action_link, alert_doc_change=F
 
 	frappe.respond_as_web_page(None, None,
 		indicator_color="blue",
-		template="confirm_workflow_action",
+		#template="confirm_workflow_action",
 		context=template_params)
 
 def return_link_expired_page(doc, doc_workflow_state):
@@ -201,7 +201,7 @@ def send_workflow_action_email(users_data, doc):
 		enqueue(method=frappe.sendmail, queue='short', **email_args)
 
 def get_workflow_action_url(action, doc, user):
-	apply_action_method = "/api/method/frappe.workflow.doctype.workflow_action.workflow_action.apply_action"
+	apply_action_method = "/api/method/cpfa.cpfa.doctype.workflow_notification.workflow_notification.apply_action"
 
 	params = {
 		"doctype": doc.get('doctype'),
@@ -215,7 +215,7 @@ def get_workflow_action_url(action, doc, user):
 	return get_url(apply_action_method + "?" + get_signed_params(params))
 
 def get_confirm_workflow_action_url(doc, action, user):
-	confirm_action_method = "/api/method/frappe.workflow.doctype.workflow_action.workflow_action.confirm_action"
+	confirm_action_method = "/api/method/cpfa.cpfa.doctype.workflow_notification.workflow_notification.confirm_action"
 
 	params = {
 		"action": action,
@@ -281,7 +281,7 @@ def get_common_email_args(doc):
 		response = _('{0}: {1}'.format(doctype, docname))
 
 	common_args = {
-		'template': 'workflow_action',
+		'template': 'workflow_notification',
 		'attachments': [frappe.attach_print(doctype, docname , file_name=docname)],
 		'subject': subject,
 		'message': response

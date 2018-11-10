@@ -209,7 +209,7 @@
  "issingle": 0, 
  "istable": 0, 
  "max_attachments": 0, 
- "modified": "2018-11-09 21:43:05.305028", 
+ "modified": "2018-11-10 14:25:11.893429", 
  "modified_by": "Administrator", 
  "module": "CPFA", 
  "name": "Workflow Notification", 
@@ -245,5 +245,5 @@
  "sort_order": "DESC", 
  "title_field": "reference_name", 
  "track_changes": 1, 
- "track_seen": 0
+ "track_seen": 1
 }

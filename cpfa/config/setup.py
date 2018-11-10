@@ -1,4 +1,4 @@
-
+from __future__ import unicode_literals
 from frappe import _
 
 def get_data():
@@ -9,8 +9,7 @@ def get_data():
 			"items": [
 				{
 					"type": "doctype",
-					"name": "Workflow Notifications",
-					"description": _("Notifications for workflow actions.")
+					"name": "Workflow Notification",
 				},
 			]
 		},
