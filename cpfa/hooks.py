@@ -76,11 +76,11 @@ notification_config = "cpfa.notifications.get_notification_config"
 # }
 
 permission_query_conditions = {
-	"Workflow Action": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.get_permission_query_conditions"
+	"Workflow Notification": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.get_permission_query_conditions"
 }
 
 has_permission = {
-	"Workflow Action": "frappe.workflow.doctype.workflow_action.workflow_action.has_permission",
+	"Workflow Notification": "frappe.workflow.doctype.workflow_notification.workflow_notification.has_permission",
 }
 
 # Document Events

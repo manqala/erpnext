@@ -29,7 +29,7 @@ def get_permission_query_conditions(user):
 
 	return "(`tabWorkflow Notification`.`user`='{user}')".format(user=user)
 
-def has_permission(doc, user):
+def has_permission(doctype, ptype="read", doc=None, verbose=False, user=None):
 	if user not in ['Administrator', doc.user]:
 		return False
 
@@ -189,11 +189,12 @@ def create_workflow_actions_for_users(users, doc):
 def send_workflow_action_email(users_data, doc):
 	common_args = get_common_email_args(doc)
 	message = common_args.pop('message', None)
+	
 	for d in users_data:
 		email_args = {
 			'recipients': [d.get('email')],
 			'args': {
-				'actions': d.get('possible_actions'),
+				#'actions': d.get('possible_actions'),
 				'message': message
 			},
 		}
@@ -278,7 +279,9 @@ def get_common_email_args(doc):
 		response = frappe.render_template(email_template.response, vars(doc))
 	else:
 		subject = _('Workflow Notification')
-		response = _('{0}: {1}'.format(doctype, docname))
+		#response = _('{0}: {1}'.format(doctype, docname))
+		email_template = frappe.db.get_value('Workflow',get_workflow_name(doc.doctype), 'email_alert_template')
+		response = frappe.render_template(email_template, {'doc':vars(doc)})
 
 	common_args = {
 		'template': 'workflow_notification',
