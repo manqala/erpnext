@@ -29,7 +29,7 @@ def get_permission_query_conditions(user):
 
 	return "(`tabWorkflow Notification`.`user`='{user}')".format(user=user)
 
-def has_permission(doctype, ptype="read", doc=None, verbose=False, user=None):
+def has_permission(doctype=None, ptype="read", doc=None, verbose=False, user=None):
 	if user not in ['Administrator', doc.user]:
 		return False
 

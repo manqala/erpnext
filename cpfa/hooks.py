@@ -80,7 +80,7 @@ permission_query_conditions = {
 }
 
 has_permission = {
-	"Workflow Notification": "frappe.workflow.doctype.workflow_notification.workflow_notification.has_permission",
+	"Workflow Notification": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.has_permission",
 }
 
 # Document Events
