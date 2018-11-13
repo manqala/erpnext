@@ -117,6 +117,18 @@ doc_events = {
 # 	]
 # }
 
+scheduler_events = {
+	"daily_long": [
+		"cpfa.cpfa.doctype.azure_storage_backup_settings.azure_storage_backup_settings.take_backups_daily"
+	],
+	"weekly_long": [
+		"cpfa.cpfa.doctype.azure_storage_backup_settings.azure_storage_backup_settings.take_backups_weekly",
+	],
+	"monthly_long": [
+		"cpfa.cpfa.doctype.azure_storage_backup_settings.azure_storage_backup_settings.take_backups_monthly"
+	]
+}
+
 # Testing
 # -------
 
