@@ -155,4 +155,5 @@ def delete_old_backups(limit, container):
 		print "Deleting Backup: {0}".format(oldest_backup)
 		for blob in all_backups[oldest_backup]:
 			# delete all keys that are inside the oldest_backup
-			block_blob_service.delete_blob(doc.container_name, blob)
+			blob_name = '{}/{}'.format(oldest_backup, blob)
+			block_blob_service.delete_blob(doc.container_name, blob_name)
