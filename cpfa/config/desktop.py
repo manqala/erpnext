@@ -5,10 +5,10 @@ from frappe import _
 def get_data():
 	return [
 		{
-			"module_name": "Total CPFA ERPNext",
+			"module_name": "CPFA",
 			"color": "green",
 			"icon": "octicon octicon-file-directory",
 			"type": "module",
-			"label": _("Total CPFA ERPNext")
+			"label": "CPFA"
 		}
 	]

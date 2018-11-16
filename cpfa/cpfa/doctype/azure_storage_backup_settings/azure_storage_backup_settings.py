@@ -115,6 +115,10 @@ def backup_to_azure():
 	upload_file_to_azure(private_files, folder, block_blob_service, container)
 	upload_file_to_azure(files_filename, folder, block_blob_service, container)
 	delete_old_backups(doc.backup_limit, container)
+	if cint(doc.remove_local_backup):
+		os.remove(db_filename)
+		os.remove(private_files)
+		os.remove(files_filename)
 
 def upload_file_to_azure(filename, folder, block_blob_service, container):
 
