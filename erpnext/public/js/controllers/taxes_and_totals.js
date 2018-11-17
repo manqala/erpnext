@@ -92,7 +92,7 @@ erpnext.taxes_and_totals = erpnext.payments.extend({
 				item.amount = flt(item.rate * item.qty, precision("amount", item));
 				item.net_amount = item.amount;
 				item.item_tax_amount = 0.0;
-				item.total_weight = flt(item.weight_per_unit * item.qty);
+				item.total_weight = flt(item.weight_per_unit * item.stock_qty);
 
 				me.set_in_company_currency(item, ["price_list_rate", "rate", "amount", "net_rate", "net_amount"]);
 			});
@@ -338,12 +338,14 @@ erpnext.taxes_and_totals = erpnext.payments.extend({
 
 	set_item_wise_tax: function(item, tax, tax_rate, current_tax_amount) {
 		// store tax breakup for each item
-		var key = item.item_code || item.item_name;
-		var item_wise_tax_amount = current_tax_amount * this.frm.doc.conversion_rate;
-		if (tax.item_wise_tax_detail && tax.item_wise_tax_detail[key])
-			item_wise_tax_amount += tax.item_wise_tax_detail[key][1];
+		let tax_detail = tax.item_wise_tax_detail;
+		let key = item.item_code || item.item_name;
 
-		tax.item_wise_tax_detail[key] = [tax_rate, flt(item_wise_tax_amount, precision("base_tax_amount", tax))];
+		let item_wise_tax_amount = current_tax_amount * this.frm.doc.conversion_rate;
+		if (tax_detail && tax_detail[key])
+			item_wise_tax_amount += tax_detail[key][1];
+
+		tax_detail[key] = [tax_rate, flt(item_wise_tax_amount, precision("base_tax_amount", tax))];
 	},
 
 	round_off_totals: function(tax) {
@@ -434,7 +436,8 @@ erpnext.taxes_and_totals = erpnext.payments.extend({
 		} else if (frappe.sys_defaults.disable_rounded_total) {
 			disable_rounded_total = frappe.sys_defaults.disable_rounded_total;
 		}
-		if(disable_rounded_total) {
+
+		if (cint(disable_rounded_total)) {
 			this.frm.doc.rounded_total = 0;
 			this.frm.doc.base_rounded_total = 0;
 			return;
@@ -652,11 +655,14 @@ erpnext.taxes_and_totals = erpnext.payments.extend({
 
 			var payment_types = $.map(this.frm.doc.payments, function(d) { return d.type; });
 			if (in_list(payment_types, 'Cash')) {
-				this.frm.doc.change_amount = flt(this.frm.doc.paid_amount - this.frm.doc.grand_total +
+				var grand_total = this.frm.doc.rounded_total || this.frm.doc.grand_total;
+				var base_grand_total = this.frm.doc.base_rounded_total || this.frm.doc.base_grand_total;
+
+				this.frm.doc.change_amount = flt(this.frm.doc.paid_amount - grand_total +
 					this.frm.doc.write_off_amount, precision("change_amount"));
 
 				this.frm.doc.base_change_amount = flt(this.frm.doc.base_paid_amount -
-					this.frm.doc.base_grand_total + this.frm.doc.base_write_off_amount,
+					base_grand_total + this.frm.doc.base_write_off_amount,
 					precision("base_change_amount"));
 			}
 		}

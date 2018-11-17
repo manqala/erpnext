@@ -120,9 +120,12 @@ class PurchaseReceipt(BuyingController):
 		self.update_prevdoc_status()
 		if self.per_billed < 100:
 			self.update_billing_status()
+		else:
+			self.status = "Completed"
 
 		# Updating stock ledger should always be called after updating prevdoc status,
-		# because updating ordered qty in bin depends upon updated ordered qty in PO
+		# because updating ordered qty, reserved_qty_for_subcontract in bin
+		# depends upon updated ordered qty in PO
 		self.update_stock_ledger()
 
 		from erpnext.stock.doctype.serial_no.serial_no import update_serial_nos_after_submit

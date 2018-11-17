@@ -35,6 +35,7 @@ class BuyingController(StockController):
 		if getattr(self, "supplier", None) and not self.supplier_name:
 			self.supplier_name = frappe.db.get_value("Supplier", self.supplier, "supplier_name")
 
+		self.validate_items()
 		self.set_qty_as_per_stock_uom()
 		self.validate_stock_or_nonstock_items()
 		self.validate_warehouse()
@@ -163,6 +164,11 @@ class BuyingController(StockController):
 				if item in self.sub_contracted_items and not item.bom:
 					frappe.throw(_("Please select BOM in BOM field for Item {0}").format(item.item_code))
 
+			if self.doctype == "Purchase Order":
+				for supplied_item in self.get("supplied_items"):
+					if not supplied_item.reserve_warehouse:
+						frappe.throw(_("Reserved Warehouse is mandatory for Item {0} in Raw Materials supplied").format(frappe.bold(supplied_item.rm_item_code)))
+
 		else:
 			for item in self.get("items"):
 				if item.bom:
@@ -192,8 +198,16 @@ class BuyingController(StockController):
 	def update_raw_materials_supplied(self, item, raw_material_table):
 		bom_items = self.get_items_from_bom(item.item_code, item.bom)
 		raw_materials_cost = 0
+		items = list(set([d.item_code for d in bom_items]))
+		item_wh = frappe._dict(frappe.db.sql("""select item_code, default_warehouse
+			from `tabItem` where name in ({0})""".format(", ".join(["%s"] * len(items))), items))
 
 		for bom_item in bom_items:
+			if self.doctype == "Purchase Order":
+				reserve_warehouse = bom_item.source_warehouse or item_wh.get(bom_item.item_code)
+				if frappe.db.get_value("Warehouse", reserve_warehouse, "company") != self.company:
+					reserve_warehouse = None
+
 			# check if exists
 			exists = 0
 			for d in self.get(raw_material_table):
@@ -213,6 +227,8 @@ class BuyingController(StockController):
 			rm.rm_item_code = bom_item.item_code
 			rm.stock_uom = bom_item.stock_uom
 			rm.required_qty = required_qty
+			if self.doctype == "Purchase Order" and not rm.reserve_warehouse:
+				rm.reserve_warehouse = reserve_warehouse
 
 			rm.conversion_factor = item.conversion_factor
 
@@ -264,7 +280,7 @@ class BuyingController(StockController):
 	def get_items_from_bom(self, item_code, bom):
 		bom_items = frappe.db.sql("""select t2.item_code,
 			t2.stock_qty / ifnull(t1.quantity, 1) as qty_consumed_per_unit,
-			t2.rate, t2.stock_uom, t2.name, t2.description
+			t2.rate, t2.stock_uom, t2.name, t2.description, t2.source_warehouse
 			from `tabBOM` t1, `tabBOM Item` t2, tabItem t3
 			where t2.parent = t1.name and t1.item = %s
 			and t1.docstatus = 1 and t1.is_active = 1 and t1.name = %s
@@ -339,7 +355,7 @@ class BuyingController(StockController):
 					frappe.get_meta(item_row.doctype).get_label(fieldname), item_row['item_code'])))
 
 	def update_stock_ledger(self, allow_negative_stock=False, via_landed_cost_voucher=False):
-		self.update_ordered_qty()
+		self.update_ordered_and_reserved_qty()
 
 		sl_entries = []
 		stock_items = self.get_stock_items()
@@ -381,7 +397,7 @@ class BuyingController(StockController):
 		self.make_sl_entries(sl_entries, allow_negative_stock=allow_negative_stock,
 			via_landed_cost_voucher=via_landed_cost_voucher)
 
-	def update_ordered_qty(self):
+	def update_ordered_and_reserved_qty(self):
 		po_map = {}
 		for d in self.get("items"):
 			if self.doctype=="Purchase Receipt" \
@@ -400,6 +416,8 @@ class BuyingController(StockController):
 						frappe.InvalidStatusError)
 
 				po_obj.update_ordered_qty(po_item_rows)
+				if self.is_subcontracted:
+					po_obj.update_reserved_qty_for_subcontract()
 
 	def make_sl_entries_for_supplier_warehouse(self, sl_entries):
 		if hasattr(self, 'supplied_items'):
@@ -439,3 +457,32 @@ class BuyingController(StockController):
 		else:
 			frappe.throw(_("Please enter Reqd by Date"))
 
+	def validate_items(self):
+		# validate items to see if they have is_purchase_item or is_subcontracted_item enabled
+		if self.doctype=="Material Request": return
+
+		if hasattr(self, "is_subcontracted") and self.is_subcontracted == 'Yes':
+			validate_item_type(self, "is_sub_contracted_item", "subcontracted")
+		else:
+			validate_item_type(self, "is_purchase_item", "purchase")
+
+def validate_item_type(doc, fieldname, message):
+	# iterate through items and check if they are valid sales or purchase items
+	items = [d.item_code for d in doc.items if d.item_code]
+
+	# No validation check inase of creating transaction using 'Opening Invoice Creation Tool'
+	if not items:
+		return
+
+	item_list = ", ".join(["'%s'" % frappe.db.escape(d) for d in items])
+
+	invalid_items = [d[0] for d in frappe.db.sql("""
+		select item_code from tabItem where name in ({0}) and {1}=0
+		""".format(item_list, fieldname), as_list=True)]
+
+	if invalid_items:
+		frappe.throw(_("Following item {items} {verb} not marked as {message} item.\
+			You can enable them as {message} item from its Item master".format(
+				items = ", ".join([d for d in invalid_items]),
+				verb = "are" if len(invalid_items) > 1 else "is",
+				message = message)))
