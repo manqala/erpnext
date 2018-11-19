@@ -1,6 +1,15 @@
 
 $(function(){
 	try {
+		
+		frappe.workflow.get_transitions = function(doctype, state){
+			frappe.workflow.setup(doctype);
+			return frappe.call({
+				method: 'cpfa.utils.workflow.get_transitions',
+				args: {doc: cur_frm.doc}
+			})
+		}
+
 		frappe.ui.form.States.prototype.show_actions = function(state) {
 			var added = false,
 				me = this;
@@ -23,57 +32,22 @@ $(function(){
 				return approval_access;
 			}
 
-			$.each(frappe.workflow.get_transitions(this.frm.doctype, state), function(i, d) {
-				if(frappe.user_roles.includes(d.allowed) && has_approval_access(d)) {
-					added = true;
-					me.frm.page.add_action_item(__(d.action), function() {
-						var action = d.action;
-						// capture current state
-						var doc_before_action = copy_dict(me.frm.doc);
-
-						// set new state
-						var next_state = frappe.workflow.get_next_state(me.frm.doctype,
-								me.frm.doc[me.state_fieldname], action);
-						me.frm.doc[me.state_fieldname] = next_state;
-						var new_state = frappe.workflow.get_document_state(me.frm.doctype, next_state);
-						var new_docstatus = cint(new_state.doc_status);
-
-
-						if(new_state.update_field) {
-							me.frm.set_value(new_state.update_field, new_state.update_value);
-						}
-
-						// revert state on error
-						var on_error = function() {
-							// reset in locals
-							frappe.model.add_to_locals(doc_before_action);
-							me.frm.refresh();
-						}
-
-						// success - add a comment
-						var success = function() {
-							me.frm.timeline.insert_comment("Workflow", next_state);
-						}
-						if(new_docstatus==1 && me.frm.doc.docstatus==0) {
-							me.frm.savesubmit(null, success, on_error);
-						} else if(new_docstatus==0 && me.frm.doc.docstatus==0) {
-							me.frm.save("Save", success, null, on_error);
-						} else if(new_docstatus==1 && me.frm.doc.docstatus==1) {
-							me.frm.save("Update", success, null, on_error);
-						} else if(new_docstatus==2 && me.frm.doc.docstatus==1) {
-							me.frm.savecancel(null, success, on_error);
-						} else {
-							frappe.msgprint(__("Document Status transition from ") + me.frm.doc.docstatus + " "
-								+ __("to") +
-								new_docstatus + " " + __("is not allowed."));
-							frappe.msgprint(__("Document Status transition from {0} to {1} is not allowed", [me.frm.doc.docstatus, new_docstatus]));
-							return false;
-						}
-
-						return false;
-
-					});
-				}
+			frappe.workflow.get_transitions(this.frm.doctype, state).then(transitions=>{
+				$.each(transitions.message, function(i, d){
+					if(frappe.user_roles.includes(d.allowed) && has_approval_access(d)) {
+						added = true;
+						me.frm.page.add_action_item(__(d.action), function() {
+							frappe.call({
+								method: 'frappe.model.workflow.apply_workflow',
+								args: {doc: me.frm.doc, action: d.action},
+								callback: function(r){
+									frappe.model.sync(r.message);
+									me.frm.refresh();
+								}
+							});
+						});
+					}
+				});
 			});
 
 			if(added) {
@@ -82,6 +56,7 @@ $(function(){
 				this.setup_help();
 			}
 		};
+
 	} catch(e){
 		console.trace('cpfa.js error')
 		console.trace(e)

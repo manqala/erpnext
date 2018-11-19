@@ -2,10 +2,12 @@
 # MIT License. See license.txt
 
 from __future__ import unicode_literals
-import frappe
+import frappe, json
 from frappe.utils import cint
 from frappe import _
 from frappe.model.workflow import get_workflow_name
+from six import string_types
+
 
 class WorkflowStateError(frappe.ValidationError): pass
 class WorkflowTransitionError(frappe.ValidationError): pass
@@ -14,12 +16,16 @@ class WorkflowPermissionError(frappe.ValidationError): pass
 @frappe.whitelist()
 def get_transitions(doc, workflow = None):
 	'''Return list of possible transitions for the given doc'''
-	doc = frappe.get_doc(frappe.parse_json(doc))
+
+	if isinstance(doc, string_types):
+		doc = json.loads(doc)
+
+	doc = frappe.get_doc(doc)
 
 	if doc.is_new():
 		return []
 
-	frappe.has_permission(doc, 'read', throw=True)
+	frappe.has_permission(doctype=doc.doctype, ptype='read', throw=True)
 	roles = frappe.get_roles()
 
 	if not workflow:
@@ -43,6 +49,8 @@ def get_transitions(doc, workflow = None):
 					dict(doc = doc))
 				if not success:
 					continue
+			print 'condition', transition.condition
+			print 'success', success
 			transitions.append(transition.as_dict())
 
 	return transitions
@@ -50,7 +58,10 @@ def get_transitions(doc, workflow = None):
 @frappe.whitelist()
 def apply_workflow(doc, action):
 	'''Allow workflow action on the current doc'''
-	doc = frappe.get_doc(frappe.parse_json(doc))
+	if isinstance(doc, string_types):
+		return json.loads(doc)
+	
+	doc = frappe.get_doc(doc)
 	workflow = get_workflow(doc.doctype)
 	transitions = get_transitions(doc, workflow)
 	user = frappe.session.user
