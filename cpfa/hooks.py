@@ -91,6 +91,7 @@ has_permission = {
 
 doc_events = {
 	"*": {
+		"validate": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",
 		"on_update": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",
 		"on_cancel": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",
 	}

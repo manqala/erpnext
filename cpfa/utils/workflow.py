@@ -14,7 +14,7 @@ class WorkflowTransitionError(frappe.ValidationError): pass
 class WorkflowPermissionError(frappe.ValidationError): pass
 
 @frappe.whitelist()
-def get_transitions(doc, workflow = None):
+def get_transitions(doc, workflow=None, user=None):
 	'''Return list of possible transitions for the given doc'''
 
 	if isinstance(doc, string_types):
@@ -25,8 +25,8 @@ def get_transitions(doc, workflow = None):
 	if doc.is_new():
 		return []
 
-	frappe.has_permission(doctype=doc.doctype, ptype='read', throw=True)
-	roles = frappe.get_roles()
+	frappe.has_permission(doctype=doc.doctype, ptype='read', user=user, throw=True)
+	roles = frappe.get_roles(username=user)
 
 	if not workflow:
 		workflow = get_workflow(doc.doctype)
@@ -49,8 +49,7 @@ def get_transitions(doc, workflow = None):
 					dict(doc = doc))
 				if not success:
 					continue
-			print 'condition', transition.condition
-			print 'success', success
+
 			transitions.append(transition.as_dict())
 
 	return transitions

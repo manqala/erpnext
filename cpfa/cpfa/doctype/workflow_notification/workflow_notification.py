@@ -13,8 +13,9 @@ from frappe.utils.verified_command import get_signed_params, verify_request
 from frappe import _
 from frappe.model.workflow import get_workflow_name
 
-from cpfa.utils.workflow import apply_workflow, \
-	has_approval_access, get_workflow_state_field, send_email_alert
+from cpfa.utils.workflow import (apply_workflow, has_approval_access,
+	get_workflow_state_field, send_email_alert, get_transitions,
+	get_workflow, validate_workflow)
 
 from frappe.desk.notifications import clear_doctype_notifications
 
@@ -34,8 +35,14 @@ def has_permission(doctype=None, ptype="read", doc=None, verbose=False, user=Non
 		return False
 
 def process_workflow_actions(doc, state):
+
 	workflow = get_workflow_name(doc.get('doctype'))
 	if not workflow:
+		return
+
+	if state == "validate":
+		if frappe.flags.in_install == 'frappe': return
+		validate_workflow(doc)
 		return
 
 	if state == "on_trash":
@@ -148,16 +155,42 @@ def update_completed_workflow_actions(doc, user=None):
 		(user, doc.get('doctype'), doc.get('name'), user))
 
 def get_next_possible_transitions(workflow_name, state):
-	return frappe.get_all('Workflow Transition',
-		fields=['allowed', 'action', 'state', 'allow_self_approval'],
+	fields = ['allowed', 'action', 'state', 'allow_self_approval', 'condition']
+	transitions =  frappe.get_all('Workflow Transition',
 		filters=[['parent', '=', workflow_name],
 		['state', '=', state]])
+	
+	return [frappe.db.get_value('Workflow Transition',t.name, fields, as_dict=1) for \
+				t in transitions]
+
+def filter_available_actions(users, doc, transition):
+	filtered = []
+	
+	for user in users:
+		roles = frappe.get_roles(username=user)
+		if transition.allowed in roles:
+			if transition.condition:
+				# if condition, evaluate
+				# access to frappe.db.get_value and frappe.db.get_list
+				success = frappe.safe_eval(transition.condition,
+					dict(frappe = frappe._dict(
+						db = frappe._dict(get_value = frappe.db.get_value, get_list=frappe.db.get_list),
+						session = frappe.session
+					)),
+					dict(doc = doc))
+				if not success:
+					continue
+			filtered.append(user)
+
+	return filtered
 
 def get_users_next_action_data(transitions, doc):
 	user_data_map = {}
+
 	for transition in transitions:
 		users = get_users_with_role(transition.allowed)
 		filtered_users = filter_allowed_users(users, doc, transition)
+		filtered_users = filter_available_actions(filtered_users, doc, transition)
 		for user in filtered_users:
 			if not user_data_map.get(user):
 				user_data_map[user] = {
