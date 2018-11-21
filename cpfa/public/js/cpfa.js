@@ -38,7 +38,7 @@ $(function(){
 						added = true;
 						me.frm.page.add_action_item(__(d.action), function() {
 							frappe.call({
-								method: 'frappe.model.workflow.apply_workflow',
+								method: 'cpfa.utils.workflow.apply_workflow',
 								args: {doc: me.frm.doc, action: d.action},
 								callback: function(r){
 									frappe.model.sync(r.message);

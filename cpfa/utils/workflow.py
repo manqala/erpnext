@@ -58,7 +58,7 @@ def get_transitions(doc, workflow=None, user=None):
 def apply_workflow(doc, action):
 	'''Allow workflow action on the current doc'''
 	if isinstance(doc, string_types):
-		return json.loads(doc)
+		doc = json.loads(doc)
 	
 	doc = frappe.get_doc(doc)
 	workflow = get_workflow(doc.doctype)
