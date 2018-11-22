@@ -10,5 +10,12 @@ def get_data():
 			"icon": "octicon octicon-file-directory",
 			"type": "module",
 			"label": "CPFA"
+		},
+		{
+			"module_name": "Fleet",
+			"color": "purple",
+			"icon": "octicon octicon-globe",
+			"type": "module",
+			"label": "Fleet"
 		}
 	]

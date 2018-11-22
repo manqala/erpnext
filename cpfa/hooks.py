@@ -29,6 +29,13 @@ app_include_js = "/assets/cpfa/js/cpfa.js"
 
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
+
+doctype_js = {
+	"Salary Slip" : "public/js/custom_hr.js",
+	"Vehicle" : "public/js/filter_model.js",
+	"Vehicle Servicing Log": "public/js/calculate_total.js",
+}
+
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -90,6 +97,9 @@ has_permission = {
 # Hook on document methods and events
 
 doc_events = {
+	"Salary Slip": {
+		"validate": "app1.utils.hr.calculate_base_amount"
+	},
 	"*": {
 		"validate": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",
 		"on_update": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",
@@ -119,6 +129,9 @@ doc_events = {
 # }
 
 scheduler_events = {
+	"all": [
+		"cpfa.tasks.task_all.set_vehicle_status"
+	],
 	"daily_long": [
 		"cpfa.cpfa.doctype.azure_storage_backup_settings.azure_storage_backup_settings.take_backups_daily"
 	],
@@ -143,5 +156,14 @@ scheduler_events = {
 # }
 
 fixtures = [
-	{"dt":"Custom Field", "filters": [["dt", "in", ["Workflow","Workflow Transition"]]]}
+	{"dt":"Custom Field", "filters": [
+			["dt", "in", [
+				"Workflow",
+				"Workflow Transition",
+				"Salary Slip",
+				"Address",
+				"Vehicle"
+			]]
+		]
+	}
 ]
