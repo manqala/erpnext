@@ -4,8 +4,9 @@ import frappe
 
 
 def set_vehicle_status():
-    print("Starting Operation")
-    doc=frappe.get_doc("Vehicle","Pathfinder-2016_YI-896-JJN")
-    doc.odometer_2=1414
-    doc.save()
-    print("Done")
+	return
+	print("Starting Operation")
+	doc=frappe.get_doc("Vehicle","Pathfinder-2016_YI-896-JJN")
+	doc.odometer_2=1414
+	doc.save()
+	print("Done")

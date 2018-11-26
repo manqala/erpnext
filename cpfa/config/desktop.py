@@ -17,5 +17,12 @@ def get_data():
 			"icon": "octicon octicon-globe",
 			"type": "module",
 			"label": "Fleet"
+		},
+		{
+			"module_name": "Bank Statement",
+			"color": "grey",
+			"icon": "octicon octicon-desktop-download",
+			"type": "module",
+			"label": _("Bank Statement")
 		}
 	]
