@@ -25,5 +25,23 @@ cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
 doc=frappe.new_doc("Vehicle Trip Log")
 },("Create"))
 
-}
+},
+employee:function(frm){
+  let employee_name_=cur_frm.doc.employee
+    frappe.call({
+      method:"frappe.client.get_value",
+      args:{
+        doctype:"Employee",
+       filters:{
+         name:employee_name_,
+       },
+      fieldname:"employee_name",
+    },
+    callback:function(r){
+      var full_name=r.message["employee_name"]
+      cur_frm.set_value("employee",full_name)
+      cur_frm.refresh_field("employee")
+    }
+   })
+ }
 })

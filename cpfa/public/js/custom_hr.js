@@ -10,7 +10,7 @@ frappe.ui.form.on('Salary Slip', {
 		/*A function that calculates the daily salary of employee and  returns the amount payable after deductions*/
 		frappe.call({
 				args:{employee: employee,cal_end:cal_end,cal_start:cal_start},
-				method: 'app1.utils.hr.get_days_present',
+				method: 'cpfa.utils.misc_methods.get_days_present',
 				callback: function(response){
 				var annual_sal=response.message[1]
 				var monthly_sal=annual_sal/12

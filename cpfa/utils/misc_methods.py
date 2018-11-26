@@ -92,8 +92,29 @@ def loader(name_):
     })
     dynamic_address.doctype_name=name_
     return dynamic_address
+@frappe.whitelist()
+def loader2(name_):
+	dynamic_address=frappe.new_doc("Address")
+	dynamic_address.doctype_name=name_
+	return(dynamic_address)
 
 @frappe.whitelist()
 def address_loader(name_of_company):
 	result=frappe.get_all("Address",filters={"doctype_name":name_of_company},fields=["address_type","address_line1","address_line2","city","state","country","email_id","phone","fax"])
-	return(result)
+	if result:
+		return(result)
+	else:
+		return None 
+@frappe.whitelist()
+def contact_loader(name_of_company):
+	result=frappe.get_all("Contact",filters={"doctype_name":name_of_company},fields=["first_name","last_name","phone","mobile_no","email_id"])
+	if result:
+		return(result)
+	else:
+		return None
+
+@frappe.whitelist()
+def getContacts(name_):
+	new_contact=frappe.new_doc("Contact")
+	new_contact.doctype_name=name_
+	return(new_contact)
