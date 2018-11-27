@@ -254,6 +254,7 @@ class BankStatement(Document):
 					# set debit_account of of newly created third_party_journal_item to
 					# bank_statement_item.txn_type.debit_account
 					bank_statement_item.set('jl_credit_account', txn_type.debit_account)
+					processed_rows.append(str(bank_statement_item.idx))
 
 			if txn_type.credit_account_party_type:
 				# create new item in bank_statement_item.third_party_journal_items
@@ -278,9 +279,10 @@ class BankStatement(Document):
 					# set credit_account of of newly created third_party_journal_item to
 					# bank_statement_item.txn_type.credit_account
 					bank_statement_item.set('jl_credit_account', txn_type.credit_account)
+					processed_rows.append(str(bank_statement_item.idx))
 		
 		if processed_rows:
-			frappe.msgprint('The following rows were processed: <br> row {}'.format(', '.join(processed_rows)))
+			frappe.msgprint('The following rows were processed: <br> row {}'.format(', row '.join(processed_rows)))
 		else:
 			frappe.msgprint('0 rows processed', indicator='red')
 		self.save()
@@ -358,12 +360,15 @@ def make_query(pairs):
 
 def get_open_third_party_documents_using_search_fields(search_fields, txn,
 		allocated_entries=[]):
+	""" search for documents with txn.description and search_fields"""
+	
 	from _mysql_exceptions import OperationalError
 	from frappe.exceptions import ValidationError
 	from erpnext.accounts.doctype.payment_request.payment_request import get_amount
 
 	matches = []
 	found_documents = []
+	gl_fields = ['name', 'account', 'against_voucher', 'against_voucher_type']
 	sta_format = frappe.db.get_value(txn.parenttype, txn.parent, 'bank_statement_format')
 	sta_itm_fields = frappe.db.sql("""select target_field from
 		`tabBank Statement Mapping Item` where parent = '{}'
@@ -375,20 +380,26 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn,
 		#contained in txn_description. Append result to found_documents
 		search_field = '_'.join(s_field.field_name.split()).lower()
 		try:
-			query = """select name, account, against_voucher,
-				against_voucher_type,{0} from `tabGL Entry` where
-				against_voucher_type IS NOT NULL{1}""".format(
-												search_field,
-												make_query(matches))
-			result = frappe.db.sql(query, as_dict=1)
+			#query = """select name, account, against_voucher,
+			#	against_voucher_type,{0} from `tabGL Entry` where
+			#	against_voucher_type IS NOT NULL{1}""".format(
+			#									search_field,
+			#									make_query(matches))
+			#result = frappe.db.sql(query, as_dict=1)
+			result = frappe.db.sql("select name, account, against_voucher, \
+				against_voucher_type from `tabGL Entry` where \
+				against_voucher_type IS NOT NULL", as_dict=1)
 
 			if not result:
 				continue
 			for res in result:
 				if res.name in allocated_entries:
 					continue
-				dt,dn = res.against_voucher_type, res.against_voucher
-
+				
+				res.update(frappe.get_value(res.against_voucher_type,
+							res.against_voucher, '*'))
+				
+				#dt,dn = res.against_voucher_type, res.against_voucher
 				# this throws an error if the amount is not greater than 0
 				#amt_outstanding = get_amount(frappe.get_doc(dt,dn), dt)
 
@@ -401,11 +412,15 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn,
 
 				for field in sta_itm_fields:
 					field_val = txn.get(field)
-					if is_float(txn_match) and is_float(field_val): txn_match = int(float(txn_match) * 100)
-					if is_float(txn.get(field)): field_val = int(float(field_val) * 100)
+					if is_float(txn_match) and is_float(field_val):
+						#remove decimals by converting to int
+						txn_match = int(float(txn_match) * 100)
+					if is_float(txn.get(field)):
+						field_val = int(float(field_val) * 100)
 					if str(txn_match) == str(field_val):
 						match_pair = {search_field: res.get(search_field)}
-						if not match_pair in matches: matches.append(match_pair)
+						if not match_pair in matches:
+							matches.append(match_pair)
 
 				# check mandatory search fields
 				if s_field.mandatory and not match_pair:
@@ -420,7 +435,7 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn,
 				})
 				found_docs_tuple = [(f.account, f.gl_entry) for \
 										f in found_documents]
-				if not (ret_dict.account, ret_dict.gl_entry) in found_docs_tuple:
+				if (ret_dict.account, ret_dict.gl_entry) not in found_docs_tuple:
 					found_documents.append(ret_dict)
 		except (OperationalError, ValidationError) as e:
 			continue
