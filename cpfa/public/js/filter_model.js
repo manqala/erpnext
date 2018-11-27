@@ -43,5 +43,12 @@ employee:function(frm){
       cur_frm.refresh_field("employee")
     }
    })
+ },
+ vehicle_value:function(frm){
+   current_figure=cur_frm.doc.vehicle_value;
+   new_value="NGN"+current_figure
+   cur_frm.set_value("vehicle_value",new_value)
+   cur_frm.refresh_field("vehicle_value")
+
  }
 })

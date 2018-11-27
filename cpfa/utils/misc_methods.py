@@ -104,7 +104,7 @@ def address_loader(name_of_company):
 	if result:
 		return(result)
 	else:
-		return None 
+		return None
 @frappe.whitelist()
 def contact_loader(name_of_company):
 	result=frappe.get_all("Contact",filters={"doctype_name":name_of_company},fields=["first_name","last_name","phone","mobile_no","email_id"])

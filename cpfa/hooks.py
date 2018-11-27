@@ -98,7 +98,7 @@ has_permission = {
 
 doc_events = {
 	"Salary Slip": {
-		"validate": "app1.utils.hr.calculate_base_amount"
+		"validate": "cpfa.utils.misc_methods.calculate_base_amount"
 	},
 	"*": {
 		"validate": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",

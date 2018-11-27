@@ -20,7 +20,7 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	}
 		frappe.call({
 			args:{vehicle_name:vehicle_name},
-			method:'app1.utils.hr.getServicePlan',
+			method:'cpfa.utils.misc_methods.getServicePlan',
 			callback:function(response){
 					for(var o=0;o<=response.message[0].length-1;o++){
 						frm.add_child("service_details")
