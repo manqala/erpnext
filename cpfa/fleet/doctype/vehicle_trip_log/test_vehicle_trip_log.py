@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018, frappe and Contributors
+# Copyright (c) 2018, Manqala and Contributors
 # See license.txt
 from __future__ import unicode_literals
 

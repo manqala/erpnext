@@ -33,7 +33,7 @@ app_include_js = "/assets/cpfa/js/cpfa.js"
 doctype_js = {
 	"Salary Slip" : "public/js/custom_hr.js",
 	"Vehicle" : "public/js/filter_model.js",
-	"Vehicle Servicing Log": "public/js/calculate_total.js",
+	#"Vehicle Servicing Log": "public/js/calculate_total.js",
 }
 
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
@@ -100,6 +100,9 @@ doc_events = {
 	"Salary Slip": {
 		"validate": "cpfa.utils.misc_methods.calculate_base_amount"
 	},
+	# "Vehicle" :{
+	# "autoname":"cpfa.utils.misc_methods.autoname"
+	# },
 	"*": {
 		"validate": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",
 		"on_update": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",

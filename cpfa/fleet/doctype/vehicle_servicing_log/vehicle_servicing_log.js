@@ -15,13 +15,14 @@
 frappe.ui.form.on("Vehicle Servicing Log",{
 		vehicle:function (frm) {
 		var vehicle_name=cur_frm.doc.vehicle
-		if(vehicle_name==" "){
-		vehicle_name="blank"
+		if(vehicle_name==undefined){
+		frappe.throw("Vehicle field must have a valid value")
 	}
 		frappe.call({
 			args:{vehicle_name:vehicle_name},
 			method:'cpfa.utils.misc_methods.getServicePlan',
 			callback:function(response){
+			cur_frm.clear_table("service_details")
 					for(var o=0;o<=response.message[0].length-1;o++){
 						frm.add_child("service_details")
 						cur_frm.doc.service_details[o].service_item=response.message[0][o]
@@ -32,6 +33,32 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 			}
 		})
 	},
+	before_save:function(frm){
+	  console.log("Calculating");
+	    var doc_ser_det=cur_frm.doc.service_details
+	    var service_details_arr=Object.values(doc_ser_det)
+	    var sum=0;
+	    for(var i in service_details_arr){
+	      var tempsum=service_details_arr[i].expense
+	      sum=sum+tempsum
+	    }
+	    cur_frm.set_value("total_expenses",sum)
+	    console.log("Finished Calculation");
+	    frappe.call({
+	        "method": "frappe.client.set_value",
+	        "args": {
+	            "doctype": "Vehicle",
+	            "name": cur_frm.doc.vehicle,
+	            "fieldname": {
+	              // "last_odometer":cur_frm.doc.odometer,
+	              "date_of_last_service":cur_frm.doc.service_date
+	              //console.log(cur_frm.doc.service_date);
+
+	            }
+	        }
+	    });
+	    console.log("ran to the end");
+	  }
 })
 
 // frappe.ui.form.on("Vehicle Service Template", "refresh", function(frm) {

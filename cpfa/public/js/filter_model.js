@@ -11,6 +11,10 @@ frappe.ui.form.on('Vehicle',{
       }
   },
   refresh: function(frm){
+    if(frm.doc.__islocal){
+      ;
+    }
+    else{
 		var name__=cur_frm.doc.name
 cur_frm.add_custom_button(("Vehicle Servicing Log"),function(ev){
 	frappe.set_route("List","Vehicle Servicing Log",{"vehicle":name__})
@@ -24,7 +28,7 @@ cur_frm.add_custom_button(("Vehicle Servicing Log"),function(ev){
 cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
 doc=frappe.new_doc("Vehicle Trip Log")
 },("Create"))
-
+}
 },
 employee:function(frm){
   let employee_name_=cur_frm.doc.employee
@@ -44,11 +48,8 @@ employee:function(frm){
     }
    })
  },
- vehicle_value:function(frm){
-   current_figure=cur_frm.doc.vehicle_value;
-   new_value="NGN"+current_figure
-   cur_frm.set_value("vehicle_value",new_value)
-   cur_frm.refresh_field("vehicle_value")
-
- }
+ vehicle_model:function(frm){
+   var doc_name=cur_frm.doc.vehicle_model+"_"+cur_frm.doc.license_plate
+   cur_frm.set_value("color",doc_name)
+  }
 })

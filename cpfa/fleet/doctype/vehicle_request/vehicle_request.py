@@ -9,6 +9,12 @@ from frappe.model.document import Document
 class VehicleRequest(Document):
 	pass
 
+	def autoname(self):
+		name_=self.employee_name+self.date_required
+		self.name=name_
+		return
+		
+
 
 
 @frappe.whitelist()
@@ -19,4 +25,3 @@ def getEmployeeName():
 	for i in result:
 		result_list.append(i.employee_name)
 	return result_list
-	
