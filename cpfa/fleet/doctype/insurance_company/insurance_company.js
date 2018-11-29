@@ -14,33 +14,42 @@ frappe.ui.form.on('Insurance Company', {
 	 	 	args:{"name_of_company":cur_frm.doc.name},
 	 	 		method:"cpfa.utils.misc_methods.address_loader",
 	 	 	callback: function(r){
-		var temp="";
-	    var i =0;
-	 		 while(i<r.message.length){
-				  var template_="<br /> <div><b>"+(i+1)+" "+r.message[i].address_type+"</b><br />"+
-					"<small> "+r.message[i].address_line1+"</small><br />"+
-				 		"<small>"+r.message[i].address_line2+"</small><br />"+
-				 	"<small> "+r.message[i].city+"</small><br />"+
-				 		"<small>"+r.message[i].state+"</small><br />"+
-				 		"<small>"+r.message[i].country+"</small><br />"+
-				 		"<small>" +r.message[i].email_id+"</small><br />"+
-				 		"<small>" +r.message[i].phone+"</small><br />"+
-				 	 "<small>" +r.message[i].fax+"</small><br /></div> <br />";
-					 temp+=template_
-				 i++
-	 		 }
-	 		 $(cur_frm.fields_dict['address_'].wrapper)
-	 			 .html(temp);
-							 cur_frm.refresh_field("address_")
+				if(r.message==undefined){
+					;
+				}
+				else{
+			var temp="";
+		    var i =0;
+		 		 while(i<r.message.length){
+					  var template_="<br /> <div><b>"+(i+1)+" "+r.message[i].address_type+"</b><br />"+
+						"<small> "+r.message[i].address_line1+"</small><br />"+
+					 		"<small>"+r.message[i].address_line2+"</small><br />"+
+					 	"<small> "+r.message[i].city+"</small><br />"+
+					 		"<small>"+r.message[i].state+"</small><br />"+
+					 		"<small>"+r.message[i].country+"</small><br />"+
+					 		"<small>" +r.message[i].email_id+"</small><br />"+
+					 		"<small>" +r.message[i].phone+"</small><br />"+
+					 	 "<small>" +r.message[i].fax+"</small><br /></div> <br />";
+						 temp+=template_
+					 i++
+		 		 }
+		 		 $(cur_frm.fields_dict['address'].wrapper)
+		 			 .html(temp);
+								 cur_frm.refresh_field("address")
+
+				}
 
 	 	 }
-
 	 })
 	 frappe.call({
 	 	args:{"name_of_company":cur_frm.doc.name},
 	 	method:'cpfa.utils.misc_methods.contact_loader',
 	 	callback:function(r){
-	 		con_temp="";
+		if(r.message==undefined){
+			;
+		}
+		else{
+			con_temp="";
 	 		var i=0;
 	 			while(i<r.message.length){
 	  			  var template_="<br /> <div><b>"+r.message[i].first_name+" "+r.message[i].last_name+"</b><br />"+
@@ -53,12 +62,11 @@ frappe.ui.form.on('Insurance Company', {
 	 		 $(cur_frm.fields_dict['contact'].wrapper)
 	 				.html(con_temp);
 	 				cur_frm.refresh_field("contact")
+		}
+
 			}
  	})
 }
-// else {
-// 	;
-// }
 },
 				add_contact:function(frm){
 					frappe.call({

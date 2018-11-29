@@ -48,8 +48,8 @@ employee:function(frm){
     }
    })
  },
- vehicle_model:function(frm){
+ before_save:function(frm){
    var doc_name=cur_frm.doc.vehicle_model+"_"+cur_frm.doc.license_plate
-   cur_frm.set_value("color",doc_name)
+   cur_frm.set_value("vehicle_name",doc_name)
   }
 })

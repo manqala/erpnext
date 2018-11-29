@@ -42,7 +42,7 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	      var tempsum=service_details_arr[i].expense
 	      sum=sum+tempsum
 	    }
-	    cur_frm.set_value("total_expenses",sum)
+	    cur_frm.set_value("total_expense",sum)
 	    console.log("Finished Calculation");
 	    frappe.call({
 	        "method": "frappe.client.set_value",
