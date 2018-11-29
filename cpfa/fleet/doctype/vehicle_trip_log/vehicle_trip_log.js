@@ -46,6 +46,7 @@ vehicle_request:function(frm){
 		callback:function(r){
 			cur_frm.set_value("employee",r.message.employee)
 			cur_frm.set_value("vehicle",r.message.vehicle_assigned)
+			cur_frm.set_value("driver",r.message.driver_assigned)
 		}
 	})
 }
