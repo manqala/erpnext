@@ -366,19 +366,17 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn,
 	from frappe.exceptions import ValidationError
 	from erpnext.accounts.doctype.payment_request.payment_request import get_amount
 
-	matches = []
-	found_documents = []
-	gl_fields = ['name', 'account', 'against_voucher', 'against_voucher_type']
-	sta_format = frappe.db.get_value(txn.parenttype, txn.parent, 'bank_statement_format')
-	sta_itm_fields = frappe.db.sql("""select target_field from
-		`tabBank Statement Mapping Item` where parent = '{}'
-		""".format(sta_format))
-	
-	sta_itm_fields = [frappe.scrub(x[0]) for x in sta_itm_fields]
+	matches, found_documents = [],[]
+	result = frappe.db.sql("select name, account, against_voucher, \
+		against_voucher_type from `tabGL Entry` where \
+		against_voucher_type IS NOT NULL", as_dict=1)
+	if not result:
+		return
+
 	for s_field in search_fields:
 		#search for all documents in general ledger where outstanding amount <> 0 and value of search_field in document is 
 		#contained in txn_description. Append result to found_documents
-		search_field = '_'.join(s_field.field_name.split()).lower()
+
 		try:
 			#query = """select name, account, against_voucher,
 			#	against_voucher_type,{0} from `tabGL Entry` where
@@ -386,12 +384,6 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn,
 			#									search_field,
 			#									make_query(matches))
 			#result = frappe.db.sql(query, as_dict=1)
-			result = frappe.db.sql("select name, account, against_voucher, \
-				against_voucher_type from `tabGL Entry` where \
-				against_voucher_type IS NOT NULL", as_dict=1)
-
-			if not result:
-				continue
 			for res in result:
 				if res.name in allocated_entries:
 					continue
@@ -399,34 +391,16 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn,
 				res.update(frappe.get_value(res.against_voucher_type,
 							res.against_voucher, '*'))
 				
-				#dt,dn = res.against_voucher_type, res.against_voucher
-				# this throws an error if the amount is not greater than 0
-				#amt_outstanding = get_amount(frappe.get_doc(dt,dn), dt)
-
-				# match the search field content in any order, can be separated by space or underscore('pet cat' or 'cat_pet')
-				# avoid using '.' or - in searches, to avoid conflict with re operation
-				txn_match = res.get(search_field)
-				found = search_text(txn_match, txn.transaction_description)
-
-				match_pair = dict()
-
-				for field in sta_itm_fields:
-					field_val = txn.get(field)
-					if is_float(txn_match) and is_float(field_val):
-						#remove decimals by converting to int
-						txn_match = int(float(txn_match) * 100)
-					if is_float(txn.get(field)):
-						field_val = int(float(field_val) * 100)
-					if str(txn_match) == str(field_val):
-						match_pair = {search_field: res.get(search_field)}
-						if not match_pair in matches:
-							matches.append(match_pair)
-
+				found = search_text(txn_match, txn.transaction_description, 26)
+				match_pair = check_statement_item(txn, res, s_field.field_name)
+			
 				# check mandatory search fields
 				if s_field.mandatory and not match_pair:
 					continue
 				if not (found or match_pair):
 					continue
+				if match_pair and match_pair not in matches:
+					matches.append(match_pair)
 
 				ret_dict = frappe._dict({
 					'doc':frappe.get_doc(dt,dn),
@@ -450,7 +424,6 @@ def get_account_types():
 def search_text(text, base_text, flags=0):
 	'''Search base_text for occurences of text
 	words can be matched on any order and seperated by - _ space or . '''
-
 	import re
 
 	if not text or not base_text: return
@@ -474,7 +447,8 @@ def search_text(text, base_text, flags=0):
 	found = [x.strip() for x in found if isinstance(x, basestring) and len(x)>=min_len]
 
 	match = all([txt.lower() in ' '.join(found).lower() for txt in txt_lst])
-	if match: return found
+	if match:
+		return found
 
 def print_variables(var_list, local={}):
 	'''Print list of variable to terminal'''
@@ -498,3 +472,26 @@ def is_float(value):
 		return float(value)
 	except (ValueError, TypeError):
 		return False
+
+def check_statement_item(txn, result, search_field):
+	match_pair = dict()
+	search_field = frappe.scrub(search_field)
+	txn_match = result.get(search_field)
+	sta_format = frappe.db.get_value(txn.parenttype, txn.parent, 'bank_statement_format')
+	
+	sta_itm_fields = frappe.db.sql("""select target_field from
+		`tabBank Statement Mapping Item` where parent = '{}'
+		""".format(sta_format))
+	sta_itm_fields = [frappe.scrub(x[0]) for x in sta_itm_fields]
+		
+	for field in sta_itm_fields:
+		field_val = txn.get(field)
+		if is_float(txn_match) and is_float(field_val):
+			#remove decimals by converting to int
+			txn_match = int(float(txn_match) * 100)
+		if is_float(txn.get(field)):
+			field_val = int(float(field_val) * 100)
+		if str(txn_match) == str(field_val):
+			match_pair = {search_field: result.get(search_field)}
+
+	return match_pair
