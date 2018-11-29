@@ -8,6 +8,6 @@ from frappe.model.document import Document
 
 class VehicleTripLog(Document):
 	pass
-	def validate(self):
-		for i in self.refueling_detail:
-			print("yesss")
+	# def validate(self):
+	# 	for i in self.refueling_detail:
+	# 		frappe.throw(self.refueling_detail.fuel_price)

@@ -3,6 +3,7 @@
 
 frappe.ui.form.on('Service Plan Template', {
 	refresh: function(frm) {
+		console.log("test1");
+	},
 
-	}
 });

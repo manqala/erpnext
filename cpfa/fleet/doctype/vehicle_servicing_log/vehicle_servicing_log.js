@@ -58,7 +58,12 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	        }
 	    });
 	    console.log("ran to the end");
-	  }
+	  },
+		refresh:function(frm){
+				for(var i in cur_frm.doc){
+					frm.set_df_property(i, "read_only", frm.doc.__islocal ? 0 : 1);
+				}
+		}
 })
 
 // frappe.ui.form.on("Vehicle Service Template", "refresh", function(frm) {
