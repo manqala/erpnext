@@ -18,7 +18,7 @@ frappe.ui.form.on('Salary Slip', {
 				var daily_equivalent=monthly_sal/working_days
 				var attendance_deduc=daily_equivalent*response.message[0]
 				var payment=monthly_sal-attendance_deduc
-				cur_frm.set_value("number_of_days_missed",response.message[0])
+				cur_frm.set_value("number_of_days_absent",response.message[0])
 				cur_frm.set_value("annual_salary",response.message[1])
 				cur_frm.set_value("salary_for_month",payment)
 				//console.log("number of days",response.message[1]);

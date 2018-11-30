@@ -19,11 +19,17 @@ frappe.ui.form.on('Vehicle Request', {
 			args:{
 				doctype:"Employee",
 				filters:{employee_name:cur_frm.doc.employee_name},
-				fieldname:['user_id',"name"],
+				fieldname:['user_id',"name","prefered_email"],
 			},
 			callback: function(r){
 				console.log(r.message);
-				cur_frm.set_value("employee_email",r.message.user_id)
+
+				if(r.message.user_id==null){
+					cur_frm.set_value("employee_email",r.message.prefered_email)
+				}
+				else{
+					cur_frm.set_value("employee_email",r.message.user_id)	
+				}
 				cur_frm.set_value("employee",r.message.name)
 			}
 
