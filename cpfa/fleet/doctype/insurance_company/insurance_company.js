@@ -8,7 +8,7 @@ frappe.ui.form.on('Insurance Company', {
 		 	frappe.set_route("List","Address",{"doctype_name":cur_frm.doc.name})
 		 },("Edit"))
 		cur_frm.add_custom_button(("Contact"),function(ev){
-			console.log("Clicked");
+		frappe.set_route("List","Contact",{"doctype_name":cur_frm.doc.name})
 		},("Edit"))
  		frappe.call({
 	 	 	args:{"name_of_company":cur_frm.doc.name},

@@ -100,9 +100,9 @@ doc_events = {
 	"Salary Slip": {
 		"validate": "cpfa.utils.misc_methods.calculate_base_amount"
 	},
-	# "Vehicle" :{
-	# "autoname":"cpfa.utils.misc_methods.autoname"
-	# },
+	"Vehicle" :{
+	"autoname":"cpfa.utils.misc_methods.autoname"
+	},
 	"*": {
 		"validate": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",
 		"on_update": "cpfa.cpfa.doctype.workflow_notification.workflow_notification.process_workflow_actions",

@@ -120,6 +120,9 @@ def getContacts(name_):
 	return(new_contact)
 
 
-# def autoname(self,method):
-# 	from frappe.model.naming import make_autoname
-# 	self.name = make_autoname(self.license_plate+'_'+self.vehicle_model)
+def autoname(doc,method):
+	print '\n\n\nautoname', 'method', '\n\n\n'
+
+	doc.name = doc.vehicle_model+'_'+doc.license_plate
+	print doc.as_dict()
+	

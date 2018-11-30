@@ -50,7 +50,7 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	            "doctype": "Vehicle",
 	            "name": cur_frm.doc.vehicle,
 	            "fieldname": {
-	              // "last_odometer":cur_frm.doc.odometer,
+	               "odometer_value":cur_frm.doc.odometer,
 	              "date_of_last_service":cur_frm.doc.service_date
 	              //console.log(cur_frm.doc.service_date);
 

@@ -48,8 +48,10 @@ employee:function(frm){
     }
    })
  },
- before_save:function(frm){
-   var doc_name=cur_frm.doc.vehicle_model+"_"+cur_frm.doc.license_plate
-   cur_frm.set_value("vehicle_name",doc_name)
-  }
+ // vehicle_model:function(frm){
+ //   var name_=cur_frm.doc.vehicle_model+"_"+cur_frm.doc.license_plate
+ //   cur_frm.set_value("vehicle_name",name_)
+ //   console.log("name is: ",name_);
+ //   console.log(cur_frm.doc.vehicle_name);
+ //  }
 })
