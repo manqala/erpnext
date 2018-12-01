@@ -165,7 +165,8 @@ fixtures = [
 				"Workflow Transition",
 				"Salary Slip",
 				"Address",
-				"Vehicle"
+				"Vehicle",
+				"Contact",
 			]]
 		]
 	}

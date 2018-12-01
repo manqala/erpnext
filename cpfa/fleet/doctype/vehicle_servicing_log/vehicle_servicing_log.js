@@ -57,7 +57,7 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	            }
 	        }
 	    });
-	    console.log("ran to the end");
+	    //console.log("ran to the end");
 	  },
 		refresh:function(frm){
 				for(var i in cur_frm.doc){
