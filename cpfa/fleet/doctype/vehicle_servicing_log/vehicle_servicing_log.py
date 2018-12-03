@@ -17,6 +17,11 @@ class VehicleServicingLog(Document):
 		self.name=name2
 		return
 
+	def validate(self):
+		vehicle=frappe.get_doc("Vehicle",self.vehicle)
+		vehicle.odometer_value=self.mileage
+		vehicle.save()
+		return
 	# @frappe.whitelist()
 	# def getServicePlan(vn):
 	# 	current_vehicle=frappe.get_doc("Vehicle",vn)

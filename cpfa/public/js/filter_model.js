@@ -33,24 +33,16 @@ doc=frappe.new_doc("Vehicle Trip Log")
 insurance_detail:function(frm){
   console.log("entered");
 },
-// employee:function(frm){
-//   let employee_name_=cur_frm.doc.employee
-//     frappe.call({
-//       method:"frappe.client.get_value",
-//       args:{
-//         doctype:"Employee",
-//        filters:{
-//          name:employee_name_,
-//        },
-//       fieldname:"employee_name",
-//     },
-//     callback:function(r){
-//       var full_name=r.message["employee_name"]
-//       cur_frm.set_value("employee",full_name)
-//       cur_frm.refresh_field("employee")
-//     }
-//    })
-//  },
+ vehicle_model:function(frm){
+  var model=frm.doc.vehicle_model
+   frappe.call({
+    method:"cpfa.utils.misc_methods.getType",
+    args:{model:model},
+     callback:function(response){
+       cur_frm.set_value("vehicle_type",response.message)
+     }
+  })
+ },
 chassis_no:function(frm){
   console.log("Starting...");
   var length=cur_frm.doc.chassis_no.length
@@ -100,12 +92,6 @@ carbon_check_date:function(frm){
   }
 
 }
- // vehicle_model:function(frm){
- //   var name_=cur_frm.doc.vehicle_model+"_"+cur_frm.doc.license_plate
- //   cur_frm.set_value("vehicle_name",name_)
- //   console.log("name is: ",name_);
- //   console.log(cur_frm.doc.vehicle_name);
- //  }
 }),
 frappe.ui.form.on("Insurance Detail",{
   policy_end_date:function(frm,cdt,cdn){

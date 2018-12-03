@@ -9,8 +9,9 @@ from frappe.model.document import Document
 class VehicleTripLog(Document):
 	pass
 
-	def autoname(self):
-		self.name=self.name
-	# def validate(self):
-	# 	for i in self.refueling_detail:
-	# 		frappe.throw(self.refueling_detail.fuel_price)
+	
+	def validate(self):
+		vehicle=frappe.get_doc("Vehicle",self.vehicle)
+		vehicle.odometer_value=self.mileage
+		vehicle.save()
+		return

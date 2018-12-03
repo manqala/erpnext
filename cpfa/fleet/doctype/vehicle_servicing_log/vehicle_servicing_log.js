@@ -51,7 +51,7 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	            "doctype": "Vehicle",
 	            "name": cur_frm.doc.vehicle,
 	            "fieldname": {
-	               "odometer_value":cur_frm.doc.odometer,
+	               "odometer_value":cur_frm.doc.mileage,
 	              "date_of_last_service":cur_frm.doc.service_date
 	              //console.log(cur_frm.doc.service_date);
 
@@ -60,6 +60,9 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	    });
 	    //console.log("ran to the end");
 	  },
+		return_date:function(frm){
+			console.log(frm.doc.return_date);
+		},
 		refresh:function(frm){
 				for(var i in cur_frm.doc){
 					frm.set_df_property(i, "read_only", frm.doc.__islocal ? 0 : 1);

@@ -10,10 +10,10 @@ class VehicleRequest(Document):
 	pass
 
 	def autoname(self):
-		name_=self.employee_name+self.date_required
-		self.name=name_
+		name=frappe.get_value("Employee",self.employee,"employee_name")
+		self.name=name+self.date_required
 		return
-		
+
 
 
 

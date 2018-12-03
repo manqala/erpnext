@@ -13,6 +13,21 @@ frappe.ui.form.on('Vehicle Trip Log', {
 // 			console.log("saved");
 // 		}
 // },
+mileage:function(frm){
+	var vehicle =frm.doc.vehicle
+	cur_val=frm.doc.mileage
+	frappe.call({
+		method:"cpfa.utils.misc_methods.getMileage",
+		args:{vehicle:vehicle},
+		callback:function(r){
+		if(cur_val<r.message){
+			frm.doc.mileage=""
+			cur_frm.refresh_field("mileage")
+			frappe.throw("Inputted value is less than current mileage value,Enter a valid value for mileage.")
+		}
+		}
+	})
+},
 incidents:function(frm){
 	if(cur_frm.doc.incidents==0)
 		{
@@ -48,7 +63,7 @@ cur_frm.set_value("trip_expense",sum)
  		cur_frm.set_value("vehicle",r.message[0])
 		cur_frm.set_value("employee",r.message[1])
 		cur_frm.set_value("driver",r.message[2])
-		cur_frm.set_value("trip_started",r.message[3])
+		//cur_frm.set_value("trip_started",r.message[3])
 		 var t=r.message[3]
 	console.log(t);
 
