@@ -33,47 +33,29 @@ validate:function(frm){
 		var sum=0;
 		for(var o=0; o<refueling_detail.length;o++){
 	sum+=refueling_detail[o].total
-	console.log("1");
 }
 cur_frm.set_value("trip_expense",sum)
 //console.log(sum);
 },
-vehicle_request:function(frm){
-	var v;
-	var request_obj=cur_frm.doc.vehicle_request
-	frappe.call({
-		method:"frappe.client.get_value",
-		args:{
-			doctype:"Vehicle Request",
-			filters:{
-				name:request_obj,
-			},
-			fieldname:["employee","driver_assigned","vehicle_assigned","date_required"]
-		},
+ vehicle_request:function(frm){
+ var request_obj=cur_frm.doc.vehicle_request
+ console.log(request_obj);
+ 	 frappe.call({
+ 		method:"cpfa.utils.misc_methods.getList",
+		args:{request_obj:request_obj},
 		callback:function(r){
-			cur_frm.set_value("employee",r.message.employee)
-			v=r.message.vehicle_assigned
-			cur_frm.set_value("vehicle",r.message.vehicle_assigned)
-			//console.log(veh);
-			cur_frm.set_value("driver",r.message.driver_assigned)
-			cur_frm.set_value("trip_started",r.message.date_required)
-		},
-	}),
-	console.log("the field",v);
-	frappe.call({
-		method:"frappe.client.get_value",
-		args:{
-			doctype:"Vehicle",
-			filters:{
-				name:cur_frm.doc.vehicle
-			},
-			fieldname:["odometer_value_uom"]
-		},
-		callback:function(r){
-			console.log(r.message);
-		}
-	})
-},
+		console.log(r.message);
+ 		cur_frm.set_value("vehicle",r.message[0])
+		cur_frm.set_value("employee",r.message[1])
+		cur_frm.set_value("driver",r.message[2])
+		cur_frm.set_value("trip_started",r.message[3])
+		 var t=r.message[3]
+	console.log(t);
+
+		 cur_frm.set_value("mileage_uom",r.message[4])
+  		}
+ 	})
+ },
 trip_ended:function(frm){
 	start_date=cur_frm.doc.trip_started
 	if(start_date>cur_frm.doc.trip_ended){

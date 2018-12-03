@@ -84,6 +84,21 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 				cur_frm.refresh_field("expected_return_date")
 				frappe.throw("Expected return date cannot be before service date")
 			}
+		},
+		mileage:function(frm){
+			var vehicle =frm.doc.vehicle
+			cur_val=frm.doc.mileage
+			frappe.call({
+				method:"cpfa.utils.misc_methods.getMileage",
+				args:{vehicle:vehicle},
+				callback:function(r){
+				if(cur_val<r.message){
+					frm.doc.mileage=""
+					cur_frm.refresh_field("mileage")
+					frappe.throw("Inputted value is less than current mileage value,Enter a valid value for mileage.")
+				}
+				}
+			})
 		}
 })
 
