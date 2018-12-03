@@ -28,7 +28,8 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 						cur_frm.doc.service_details[o].service_item=response.message[0][o]
 						cur_frm.doc.service_details[o].type=response.message[1][o]
 						cur_frm.refresh_field("service_details")
-						console.log(response.message[1]);
+						cur_frm.set_value("mileage_uom",response.message[2])
+						console.log(response.message);
 					}
 			}
 		})
@@ -63,6 +64,26 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 				for(var i in cur_frm.doc){
 					frm.set_df_property(i, "read_only", frm.doc.__islocal ? 0 : 1);
 				}
+				var today = new Date();
+				var dd = today.getDate();
+				var mm = today.getMonth()+1; //January is 0!
+				var yyyy = today.getFullYear();
+				if(dd<10) {
+				    dd = '0'+dd
+				}
+				if(mm<10) {
+				    mm = '0'+mm
+				}
+				today = yyyy + '-' + mm + '-' + dd;
+				cur_frm.set_value("service_date",today)
+		},
+		expected_return_date:function(frm){
+			let service_date=cur_frm.doc.service_date
+			if(service_date>cur_frm.doc.expected_return_date){
+				cur_frm.doc.expected_return_date=""
+				cur_frm.refresh_field("expected_return_date")
+				frappe.throw("Expected return date cannot be before service date")
+			}
 		}
 })
 

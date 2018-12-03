@@ -40,7 +40,7 @@ class TestBankStatement(unittest.TestCase):
 
 	def test_get_open_third_party_documents_using_search_fields(self):
 		"""check if search fields match open documents"""
-		
+
 		from cpfa.bank_statement.doctype.bank_statement.bank_statement \
 			import get_open_third_party_documents_using_search_fields
 
@@ -70,7 +70,7 @@ def build_test_records(verbose=0):
 		for data in record:
 			name_filter = data['name_filter']
 			del data['name_filter']
-			
+
 			try:
 				d = frappe.get_doc(data)
 				if verbose:
@@ -167,7 +167,7 @@ txn_docs = [
 	'item_group': 'All Item Groups',
 	'stock_uom': '_Test UOM X'},
 	{'doctype':'Customer',
-	'customer_name':'_Test Customer X',            
+	'customer_name':'_Test Customer X',
 	'customer_group':'All Customer Groups',
 	'name_filter':{'customer_name':'_Test Customer X'},
 	'territory':'All Territories'},
@@ -196,22 +196,22 @@ sample_statement = [
 		'Reference': '',
 		'Value Date': '24-Oct-16',
 		'Debit': '1000',
-		'Credit': ''
-		'Balance': '4000'
-		'Remarks': '''TRANSFER BETWEEN CUSTOMERS 
-			000015161022112026000086713238 T40 OCTOBER PAYMENT 
-			AND 500 UNITS T40 OCTOBER PAYMENT AND 500 UNITS 
+		'Credit': '',
+		'Balance': '4000',
+		'Remarks': '''TRANSFER BETWEEN CUSTOMERS
+			000015161022112026000086713238 T40 OCTOBER PAYMENT
+			AND 500 UNITS T40 OCTOBER PAYMENT AND 500 UNITS
 			_TEST CUSTOMER to ABC ESTATE RESD.&OWNER'''
 	},{
 		'Trans Date': '24-Oct-16',
 		'Reference': '',
 		'Value Date': '24-Oct-16',
 		'Debit': '1000',
-		'Credit': ''
-		'Balance': '4000'
-		'Remarks': '''TRANSFER BETWEEN CUSTOMERS 
-			000005161022112802000770301103 NIP - TRF IFO 
-			RIVTAF GOLF ESTATE RESD.andOWNER. 10 106::482701520 
+		'Credit': '',
+		'Balance': '4000',
+		'Remarks': '''TRANSFER BETWEEN CUSTOMERS
+			000005161022112802000770301103 NIP - TRF IFO
+			RIVTAF GOLF ESTATE RESD.andOWNER. 10 106::482701520
 			_TEST CUSTOMER to ABC ESTATE RESD.&OWNER'''
 	}
 ]

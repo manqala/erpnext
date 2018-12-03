@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Insurance Detail', {
-	refresh: function(frm) {
-
+	policy_end_date: function(frm) {
+		console.log("hello");
 	}
 });

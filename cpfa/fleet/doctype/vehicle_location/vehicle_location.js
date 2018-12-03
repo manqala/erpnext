@@ -14,14 +14,17 @@ frappe.ui.form.on('Vehicle Location', {
 				fieldname:["address_type","address_line1","city","state","country"]
 			},
 			callback:function(r){
-			let	template="<br /><div><b>"+r.message.address_type+"</b><br />"+
-				"<small>"+r.message.address_line1+"</small><br />"+
-				"<small>"+r.message.city+"</small><br />"+
-				"<small>"+r.message.state+"</small><br />"+
-				"<small>"+r.message.country+"</small></div><br />"
-			console.log(typeof(r.message));
-				$(cur_frm.fields_dict["location_address"].wrapper)
-					.html(template);
+				if (r.message!=undefined){	let	template="<br /><div><b>"+r.message.address_type+"</b><br />"+
+						"<small>"+r.message.address_line1+"</small><br />"+
+						"<small>"+r.message.city+"</small><br />"+
+						"<small>"+r.message.state+"</small><br />"+
+						"<small>"+r.message.country+"</small></div><br />"
+					console.log(typeof(r.message));
+						$(cur_frm.fields_dict["location_address"].wrapper)
+							.html(template);}
+							else{
+								;
+							}
 				}
 
 		 })

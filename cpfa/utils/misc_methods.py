@@ -66,6 +66,7 @@ def setVehicleName(self,ev):
 def getServicePlan(vehicle_name):
 	current_vehicle=frappe.get_doc("Vehicle",vehicle_name)
 	vehicle_model=current_vehicle.vehicle_model
+	odometer_uom=current_vehicle.odometer_value_uom
 	query1="select service_item,type,name from `tabService Plan Template` where  parent='%s' " %vehicle_model
 	result_set=frappe.db.sql(query1,as_dict=1)
 	service_item_list=[]
@@ -78,6 +79,7 @@ def getServicePlan(vehicle_name):
 	container=[]
 	container.append(service_item_list)
 	container.append(service_type_list)
+	container.append(odometer_uom)
 	return(container)
 
 @frappe.whitelist()
@@ -121,8 +123,5 @@ def getContacts(name_):
 
 
 def autoname(doc,method):
-	print '\n\n\nautoname', 'method', '\n\n\n'
-
+	# print '\n\n\nautoname', 'method', '\n\n\n'
 	doc.name = doc.vehicle_model+'_'+doc.license_plate
-	print doc.as_dict()
-	
