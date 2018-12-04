@@ -43,3 +43,11 @@ frappe.ui.form.on('Bank Transaction Type', {
 
 	}
 });
+
+
+frappe.ui.form.on('Transaction Type Journal Template', 'party_type',
+	function(frm, dt, dn){
+		var doc = locals[dt][dn];
+		frappe.model.set_value(dt, dn, "party_type_doctype", doc.party_type);
+	}
+);
