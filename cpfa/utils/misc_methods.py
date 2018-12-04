@@ -119,9 +119,14 @@ def getMileage(vehicle):
 
 @frappe.whitelist()
 def getType(model):
-	result=frappe.get_value("Vehicle Model",model,"vehicle_type")
-	return(result)
+	try:
+		result=frappe.get_value("Vehicle Model",model,"vehicle_type")
+		return(result)
+	except TypeError:
+		frappe.throw("No vehicle request data recieved!")
+
 
 def autoname(doc,method):
 	# print '\n\n\nautoname', 'method', '\n\n\n'
-	doc.name = doc.vehicle_model+'_'+doc.license_plate
+	doc.name = doc.vehicle_make+"_"+doc.vehicle_model+'_'+doc.license_plate
+	return(doc.name)

@@ -3,6 +3,7 @@
 
 frappe.ui.form.on('Vehicle Location', {
 	refresh: function(frm) {
+			cur_frm.refresh_field("address")
 		if(!cur_frm.doc.__islocal){
 		 frappe.call({
 		 	method:"frappe.client.get_value",
@@ -14,23 +15,28 @@ frappe.ui.form.on('Vehicle Location', {
 				fieldname:["address_type","address_line1","city","state","country"]
 			},
 			callback:function(r){
-				if (r.message!=undefined){	let	template="<br /><div><b>"+r.message.address_type+"</b><br />"+
+				console.log(r.message);
+				if (r.message!=undefined){
+					var	template="<br /><div><b>"+r.message.address_type+"</b><br />"+
 						"<small>"+r.message.address_line1+"</small><br />"+
 						"<small>"+r.message.city+"</small><br />"+
 						"<small>"+r.message.state+"</small><br />"+
 						"<small>"+r.message.country+"</small></div><br />"
-					console.log(typeof(r.message));
-						$(cur_frm.fields_dict["location_address"].wrapper)
-							.html(template);}
+						$(cur_frm.fields_dict["address"].wrapper)
+							.html(template)
+							cur_frm.refresh_field("address")
+						}
 							else{
-								;
+								$(cur_frm.fields_dict["address"].wrapper)
+									.html("")
+									cur_frm.refresh_field("address")
 							}
 				}
 
 		 })
 		}
 		else{
-			console.log("unsaved");
+			;
 		}
 	},
 	add_address:function(frm){

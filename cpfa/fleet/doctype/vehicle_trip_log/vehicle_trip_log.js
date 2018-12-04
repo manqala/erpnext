@@ -38,19 +38,26 @@ incidents:function(frm){
 		}
 },
 validate:function(frm){
-	 var refueling_detail=cur_frm.doc.refueling_detail;
-	 for(var i=0;i<refueling_detail.length;i++){
-	 var v1=refueling_detail[i].fuel_price
-	 var v2=refueling_detail[i].fuel_quantity
-	 refueling_detail[i].total=v1*v2
-	 }
-	 	cur_frm.refresh_field("refueling_detail")
-		var sum=0;
-		for(var o=0; o<refueling_detail.length;o++){
-	sum+=refueling_detail[o].total
+	var trip_type=frm.doc.trip_type;
+if(trip_type=="Trip"){
+	;
+}
+else{
+	var refueling_detail=cur_frm.doc.refueling_detail;
+	for(var i=0;i<refueling_detail.length;i++){
+	var v1=refueling_detail[i].fuel_price
+	var v2=refueling_detail[i].fuel_quantity
+	refueling_detail[i].total=v1*v2
+	}
+	 cur_frm.refresh_field("refueling_detail")
+	 var sum=0;
+	 for(var o=0; o<refueling_detail.length;o++){
+ sum+=refueling_detail[o].total
 }
 cur_frm.set_value("trip_expense",sum)
-//console.log(sum);
+console.log(sum);
+}
+
 },
  vehicle_request:function(frm){
  var request_obj=cur_frm.doc.vehicle_request
@@ -70,6 +77,24 @@ cur_frm.set_value("trip_expense",sum)
 		 cur_frm.set_value("mileage_uom",r.message[4])
   		}
  	})
+ },
+ trip_started:function(frm){
+	 var today = new Date();
+	 var dd = today.getDate();
+	 var mm = today.getMonth()+1; //January is 0!
+	 var yyyy = today.getFullYear();
+	 if(dd<10) {
+			 dd = '0'+dd
+	 }
+	 if(mm<10) {
+			 mm = '0'+mm
+	 }
+	 today = yyyy + '-' + mm + '-' + dd;
+	 if(frm.doc.trip_started>today){
+		 frm.doc.trip_started=""
+		 cur_frm.refresh_field("trip_started")
+		 frappe.throw("You cannot log a vehicle trip for a future date.")
+	 }
  },
 trip_ended:function(frm){
 	start_date=cur_frm.doc.trip_started
