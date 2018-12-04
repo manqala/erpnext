@@ -13,11 +13,12 @@
 	// })
 
 frappe.ui.form.on("Vehicle Servicing Log",{
-		vehicle:function (frm) {
+		vehicle:function(frm) {
 		var vehicle_name=cur_frm.doc.vehicle
 		if(vehicle_name==undefined){
-		frappe.throw("Vehicle field must have a valid value")
+		;
 	}
+	else{
 		frappe.call({
 			args:{vehicle_name:vehicle_name},
 			method:'cpfa.utils.misc_methods.getServicePlan',
@@ -33,6 +34,7 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 					}
 			}
 		})
+	}
 	},
 	before_save:function(frm){
 	  console.log("Calculating");
@@ -44,7 +46,7 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	      sum=sum+tempsum
 	    }
 	    cur_frm.set_value("total_expense",sum)
-	    console.log("Finished Calculation");
+
 	    frappe.call({
 	        "method": "frappe.client.set_value",
 	        "args": {

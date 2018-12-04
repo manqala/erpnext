@@ -9,9 +9,15 @@ from frappe.model.document import Document
 class VehicleTripLog(Document):
 	pass
 
-	
+
 	def validate(self):
 		vehicle=frappe.get_doc("Vehicle",self.vehicle)
 		vehicle.odometer_value=self.mileage
 		vehicle.save()
 		return
+
+@frappe.whitelist()
+def getTripLog(docname):
+	doc=frappe.new_doc("Vehicle Trip Log")
+	doc.vehicle_request
+	return(doc)

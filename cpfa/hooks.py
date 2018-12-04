@@ -18,7 +18,9 @@ app_license = "MIT"
 # app_include_css = "/assets/cpfa/css/cpfa.css"
 # app_include_js = "/assets/cpfa/js/cpfa.js"
 
-app_include_js = "/assets/cpfa/js/cpfa.js"
+app_include_js = ["/assets/cpfa/js/cpfa.js",
+					 "js.linkformat.js",]
+
 
 # include js, css files in header of web template
 # web_include_css = "/assets/cpfa/css/cpfa.css"

@@ -1,14 +1,20 @@
 frappe.ui.form.on('Vehicle',{
   vehicle_make: function(frm){
-    //console.log("At the beginning")
-      cur_frm.fields_dict["vehicle_model"].get_query=function(doc){
-        return {
-          filters:{
-            "vehicle_make":frm.doc.vehicle_make,
-            //console.log("Finished")
+    cur_frm.set_query("vehicle_model",function(){
+      return {
+        filters:{
+          "vehicle_make":cur_frm.doc.vehicle_make
         }
       }
-      }
+    })
+      // cur_frm.fields_dict["vehicle_model"].get_query=function(doc){
+      //   return {
+      //     filters:{
+      //       "vehicle_make":frm.doc.vehicle_make,
+      //   }
+      // }
+      // }
+
   },
   refresh: function(frm){
     if(frm.doc.__islocal){
@@ -23,7 +29,18 @@ cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
 	frappe.set_route("List","Vehicle Trip Log",{"vehicle":name__})
 },("Show"))
 cur_frm.add_custom_button(("Vehicle Servicing Log"),function(ev){
-	frappe.new_doc("Vehicle Servicing Log")
+docname=frm.doc.name
+doctype="Vehicle Servicing Log"
+vehicle_model=frm.doc.vehicle_model
+  frappe.call({
+    method:"cpfa.utils.misc_methods.new_vsl",
+    args:{docname:docname,doctype:doctype,vehicle_model:vehicle_model},
+    callback:function(r){
+       var doc=frappe.model.sync(r.message)
+      frappe.set_route("Form","Vehicle Servicing Log", r.message.name)
+    
+    }
+  })
 },("Create"))
 cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
 doc=frappe.new_doc("Vehicle Trip Log")
@@ -35,13 +52,18 @@ insurance_detail:function(frm){
 },
  vehicle_model:function(frm){
   var model=frm.doc.vehicle_model
-   frappe.call({
-    method:"cpfa.utils.misc_methods.getType",
-    args:{model:model},
-     callback:function(response){
-       cur_frm.set_value("vehicle_type",response.message)
-     }
-  })
+  if(model==undefined){
+    ;
+  }
+  else{
+    frappe.call({
+     method:"cpfa.utils.misc_methods.getType",
+     args:{model:model},
+      callback:function(response){
+        cur_frm.set_value("vehicle_type",response.message)
+      }
+   })
+  }
  },
 chassis_no:function(frm){
   console.log("Starting...");

@@ -125,6 +125,23 @@ def getType(model):
 	except TypeError:
 		frappe.throw("No vehicle request data recieved!")
 
+@frappe.whitelist()
+def new_vsl(docname,doctype,vehicle_model):
+	new_vsl=frappe.new_doc(doctype)
+	new_vsl.vehicle=docname
+	vehicle=frappe.get_doc("Vehicle",docname)
+	odometer_value=vehicle.odometer_value_uom
+	new_vsl.mileage_uom=odometer_value
+	query1="select service_item,type,name from `tabService Plan Template` where  parent='%s' " %vehicle_model
+	result_set=frappe.db.sql(query1,as_dict=1)
+	for i in result_set:
+	 	new_vsl.append("service_details",{"service_item":i.service_item,"type":i.type,"currency":"NGN"})
+	# container=[]
+	# container.append(service_item_list)
+	# container.append(service_type_list)
+	# container.append(new_vsl)
+	return(new_vsl)
+
 
 def autoname(doc,method):
 	# print '\n\n\nautoname', 'method', '\n\n\n'
