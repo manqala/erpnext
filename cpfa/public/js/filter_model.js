@@ -38,7 +38,7 @@ vehicle_model=frm.doc.vehicle_model
     callback:function(r){
        var doc=frappe.model.sync(r.message)
       frappe.set_route("Form","Vehicle Servicing Log", r.message.name)
-    
+
     }
   })
 },("Create"))
@@ -52,6 +52,7 @@ insurance_detail:function(frm){
 },
  vehicle_model:function(frm){
   var model=frm.doc.vehicle_model
+  console.log(model);
   if(model==undefined){
     ;
   }
@@ -62,6 +63,22 @@ insurance_detail:function(frm){
       callback:function(response){
         cur_frm.set_value("vehicle_type",response.message)
       }
+   })
+   frappe.call({
+     method:"cpfa.utils.misc_methods.getServiceTemp",
+     args:{model:model},
+     callback:function(response){
+       cur_frm.clear_table("service_details")
+ 					for(var o=0;o<response.message.length;o++){
+ 						frm.add_child("service_details")
+ 						frm.doc.service_details[o].service_item=response.message[o].service_item
+ 						frm.doc.service_details[o].type=response.message[o].type
+            frm.doc.service_details[o].mileage_interval=response.message[o].mileage_interval
+            frm.doc.service_details[o].mileage_uom=response.message[o].mileage_uom
+ 					}
+           	frm.refresh_field("service_details")
+          console.log(response.message.length);
+     }
    })
   }
  },
@@ -117,7 +134,6 @@ carbon_check_date:function(frm){
 }),
 frappe.ui.form.on("Insurance Detail",{
   policy_end_date:function(frm,cdt,cdn){
-    console.log("hola");
   for(var i=0;i<cur_frm.doc.insurance_detail.length;i++){
     var start_date=cur_frm.doc.insurance_detail[i].policy_start_date
     var end_date=cur_frm.doc.insurance_detail[i].policy_end_date

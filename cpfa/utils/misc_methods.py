@@ -106,11 +106,9 @@ def getMileage(vehicle):
 
 @frappe.whitelist()
 def getType(model):
-	try:
-		result=frappe.get_value("Vehicle Model",model,"vehicle_type")
-		return(result)
-	except TypeError:
-		frappe.throw("No vehicle request data recieved!")
+	result=frappe.get_value("Vehicle Model",model,"vehicle_type")
+	return(result)
+	frappe.throw("No vehicle request data recieved!")
 
 @frappe.whitelist()
 def new_vsl(docname,doctype,vehicle_model):
@@ -123,11 +121,12 @@ def new_vsl(docname,doctype,vehicle_model):
 	result_set=frappe.db.sql(query1,as_dict=1)
 	for i in result_set:
 	 	new_vsl.append("service_details",{"service_item":i.service_item,"type":i.type,"currency":"NGN"})
-	# container=[]
-	# container.append(service_item_list)
-	# container.append(service_type_list)
-	# container.append(new_vsl)
 	return(new_vsl)
+
+@frappe.whitelist()
+def getServiceTemp(model):
+	result_set=frappe.get_all("Service Plan Template",filters={"parent":model},fields=["service_item","type","frequency","mileage_interval","mileage_uom"] )
+	return(result_set)
 
 
 def autoname(doc,method):
