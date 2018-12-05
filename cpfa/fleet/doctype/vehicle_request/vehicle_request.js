@@ -8,12 +8,17 @@
      }
      else{
        cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
-         doc_name=cur_frm.doc.name
-      frappe.cal({
-        method:"cpfa.fleet.doctype,vehicle_trip_log.getTripLog",
-        args:{docname:docname},
+         var docname=cur_frm.doc.name
+         var employee=frm.doc.employee
+         var driver=frm.doc.driver_assigned
+         var vehicle=frm.doc.vehicle_assigned
+         var date=frm.doc.date_required
+      frappe.call({
+        method:"cpfa.fleet.doctype.vehicle_request.vehicle_request.getTripLog",
+        args:{docname:docname,employee:employee,driver:driver,vehicle:vehicle,date:date},
         callback:function(r){
-            console.log(r.message);
+          var doc=frappe.model.sync(r.message)
+          frappe.set_route("Form","Vehicle Trip Log", r.message.name)
         }
       })
        },("Create"))

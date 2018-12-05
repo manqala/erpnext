@@ -98,19 +98,6 @@ def getContacts(name_):
 	new_contact.doctype_name=name_
 	return(new_contact)
 
-@frappe.whitelist()
-def getList(request_obj):
-	doc=frappe.get_doc("Vehicle Request",request_obj)
-	lst=[]
-	lst.append(doc.vehicle_assigned)
-	lst.append(doc.employee)
-	date_=doc.date_required
-	dae_=date_.strftime("%d"+"-"+"%m"+"-"+"%Y")
-	lst.append(doc.driver_assigned)
-	lst.append(dae_)
-	vehi=frappe.get_doc("Vehicle",doc.vehicle_assigned)
-	lst.append(vehi.odometer_value_uom)
-	return(lst)
 
 @frappe.whitelist()
 def getMileage(vehicle):

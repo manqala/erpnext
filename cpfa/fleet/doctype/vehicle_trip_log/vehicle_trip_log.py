@@ -17,7 +17,13 @@ class VehicleTripLog(Document):
 		return
 
 @frappe.whitelist()
-def getTripLog(docname):
-	doc=frappe.new_doc("Vehicle Trip Log")
-	doc.vehicle_request
-	return(doc)
+def getList(request_obj):
+	doc=frappe.get_doc("Vehicle Request",request_obj)
+	triplog=frappe.new_doc("Vehicle Trip Log")
+	triplog.vehicle_request=request_obj
+	triplog.employee=doc.employee
+	triplog.driver=doc.driver_assigned
+	triplog.vehicle=doc.vehicle_assigned
+	triplog.mileage_uom=frappe.get_doc("Vehicle",doc.vehicle_assigned).odometer_value_uom
+	triplog.trip_started=doc.date_required
+	return(triplog)

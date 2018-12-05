@@ -15,7 +15,9 @@ frappe.ui.form.on('Insurance Company', {
 	 	 		method:"cpfa.utils.misc_methods.address_loader",
 	 	 	callback: function(r){
 				if(r.message==undefined){
-					;
+					$(cur_frm.fields_dict['address'].wrapper)
+ 		 			 .html("");
+ 								 cur_frm.refresh_field("address")
 				}
 				else{
 			var temp="";
@@ -46,7 +48,9 @@ frappe.ui.form.on('Insurance Company', {
 	 	method:'cpfa.utils.misc_methods.contact_loader',
 	 	callback:function(r){
 		if(r.message==undefined){
-			;
+			$(cur_frm.fields_dict['contact'].wrapper)
+				 .html("");
+				 cur_frm.refresh_field("contact")
 		}
 		else{
 			con_temp="";

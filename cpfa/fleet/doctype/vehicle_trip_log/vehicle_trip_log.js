@@ -66,20 +66,14 @@ console.log(sum);
  }
  else{
 	 frappe.call({
- 		method:"cpfa.utils.misc_methods.getList",
+ 		method:"cpfa.fleet.doctype.vehicle_trip_log.vehicle_trip_log.getList",
 		args:{request_obj:request_obj},
 		callback:function(r){
-		console.log(r.message);
- 		cur_frm.set_value("vehicle",r.message[0])
-		cur_frm.set_value("employee",r.message[1])
-		cur_frm.set_value("driver",r.message[2])
-		//cur_frm.set_value("trip_started",r.message[3])
-		 var t=r.message[3]
-	cur_frm.set_value("mileage_uom",r.message[4])
+			doc=frappe.model.sync(r.message)
+			frappe.set_route("Form","Vehicle Trip Log",r.message.name)
   		}
  	})
  }
-
  },
  trip_started:function(frm){
 	 var today = new Date();

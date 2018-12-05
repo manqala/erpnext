@@ -18,10 +18,13 @@ class VehicleRequest(Document):
 
 
 @frappe.whitelist()
-def getEmployeeName():
-	query="Select employee_name from `tabEmployee`"
-	result=frappe.db.sql(query,as_dict=True)
-	result_list=[]
-	for i in result:
-		result_list.append(i.employee_name)
-	return result_list
+def getTripLog(docname,employee,driver,vehicle,date):
+	triplog=frappe.new_doc("Vehicle Trip Log")
+	triplog.vehicle_request=docname
+	triplog.employee=employee
+	triplog.driver=driver
+	triplog.vehicle=vehicle
+	triplog.trip_started=date
+	odometer_uom=frappe.get_doc("Vehicle",vehicle).odometer_value_uom
+	triplog.mileage_uom=odometer_uom
+	return(triplog)
