@@ -23,7 +23,7 @@ frappe.ui.form.on('Vehicle',{
     else{
 		var name__=cur_frm.doc.name
 cur_frm.add_custom_button(("Vehicle Servicing Log"),function(ev){
-	frappe.set_route("List","Vehicle Servicing Log",{"vehicle":name__})
+frappe.set_route("List","Vehicle Servicing Log",{"vehicle":name__})
 },("Show"))
 cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
 	frappe.set_route("List","Vehicle Trip Log",{"vehicle":name__})
@@ -38,17 +38,31 @@ vehicle_model=frm.doc.vehicle_model
     callback:function(r){
        var doc=frappe.model.sync(r.message)
       frappe.set_route("Form","Vehicle Servicing Log", r.message.name)
-
     }
   })
 },("Create"))
 cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
 doc=frappe.new_doc("Vehicle Trip Log")
 },("Create"))
+var model=frm.doc.vehicle_model
+frappe.call({
+  method:"cpfa.utils.misc_methods.getServiceTemp",
+  args:{model:model},
+  callback:function(response){
+    cur_frm.clear_table("service_details")
+       for(var o=0;o<response.message.length;o++){
+         frm.add_child("service_details")
+         frm.doc.service_details[o].service_item=response.message[o].service_item
+         frm.doc.service_details[o].type=response.message[o].type
+         frm.doc.service_details[o].mileage_interval=response.message[o].mileage_interval
+         frm.doc.service_details[o].mileage_uom=response.message[o].mileage_uom
+         frm.doc.service_details[o].frequency=response.message[o].frequency
+       }
+         frm.refresh_field("service_details")
+       console.log(response.message.length);
+  }
+})
 }
-},
-insurance_detail:function(frm){
-  console.log("entered");
 },
  vehicle_model:function(frm){
   var model=frm.doc.vehicle_model
@@ -68,6 +82,7 @@ insurance_detail:function(frm){
      method:"cpfa.utils.misc_methods.getServiceTemp",
      args:{model:model},
      callback:function(response){
+       console.log(response.message);
        cur_frm.clear_table("service_details")
  					for(var o=0;o<response.message.length;o++){
  						frm.add_child("service_details")
@@ -75,6 +90,7 @@ insurance_detail:function(frm){
  						frm.doc.service_details[o].type=response.message[o].type
             frm.doc.service_details[o].mileage_interval=response.message[o].mileage_interval
             frm.doc.service_details[o].mileage_uom=response.message[o].mileage_uom
+            frm.doc.service_details[o].frequency=response.message[o].frequency
  					}
            	frm.refresh_field("service_details")
           console.log(response.message.length);

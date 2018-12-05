@@ -99,7 +99,7 @@
    "read_only": 0, 
    "remember_last_selected_value": 0, 
    "report_hide": 0, 
-   "reqd": 1, 
+   "reqd": 0, 
    "search_index": 0, 
    "set_only_once": 0, 
    "unique": 0
@@ -177,7 +177,7 @@
  "issingle": 0, 
  "istable": 1, 
  "max_attachments": 0, 
- "modified": "2018-12-01 22:56:51.747245", 
+ "modified": "2018-12-05 23:35:49.097230", 
  "modified_by": "Administrator", 
  "module": "Fleet", 
  "name": "Service Details", 

@@ -53,7 +53,6 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	            "doctype": "Vehicle",
 	            "name": cur_frm.doc.vehicle,
 	            "fieldname": {
-	               "odometer_value":cur_frm.doc.mileage,
 	              "date_of_last_service":cur_frm.doc.service_date
 	              //console.log(cur_frm.doc.service_date);
 
@@ -62,13 +61,36 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	    });
 	    //console.log("ran to the end");
 	  },
-		return_date:function(frm){
-			console.log(frm.doc.return_date);
-		},
 		refresh:function(frm){
+			if(frm.doc.__islocal){
+			;
+			}
+			else{
+				cur_frm.add_custom_button(("Return Vehicle"),function(ev){
+					frm.doc.service_status="Returned"
+					cur_frm.refresh_field("service_status")
+					var today = new Date();
+					var dd = today.getDate();
+					var mm = today.getMonth()+1; //January is 0!
+					var yyyy = today.getFullYear();
+					if(dd<10) {
+					    dd = '0'+dd
+					}
+					if(mm<10) {
+					    mm = '0'+mm
+					}
+					today = yyyy + '-' + mm + '-' + dd;
+					cur_frm.set_value("return_date",today)
+				},("Return"))
+			}
 				for(var i in cur_frm.doc){
-					frm.set_df_property(i, "read_only", frm.doc.__islocal ? 0 : 1);
+					if(i=="vehicle"||i=="expected_return_date"||i=="service_date"||i=="service_status"||i=="mileage_uom"){
+						frm.set_df_property(i, "read_only", frm.doc.__islocal ? 0 : 1);
+					}
+
 				}
+				frm.set_df_property("service_details","refresh")
+				frm.set_df_property("service_status","")
 				var today = new Date();
 				var dd = today.getDate();
 				var mm = today.getMonth()+1; //January is 0!
