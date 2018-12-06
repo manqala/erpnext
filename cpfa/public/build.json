@@ -2,7 +2,7 @@
 	"js/cpfa.js": [
 		"public/js/cpfa.js"
 	],
- "js.linkformat.js":[
+ "js/linkformat.js":[
 	 "public/js/link_format.js"
  ],
 }

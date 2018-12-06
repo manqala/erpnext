@@ -19,8 +19,10 @@ frappe.ui.form.on('Vehicle',{
   refresh: function(frm){
     if(frm.doc.__islocal){
       ;
+      console.log("unsaved");
     }
     else{
+      console.log("saved");
 		var name__=cur_frm.doc.name
 cur_frm.add_custom_button(("Vehicle Servicing Log"),function(ev){
 frappe.set_route("List","Vehicle Servicing Log",{"vehicle":name__})
