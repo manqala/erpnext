@@ -6,10 +6,8 @@ from frappe.desk.reportview import get_match_cond, get_filters_cond
 # searches for docfield
 def docfield_query(doctype, txt, searchfield, start, page_len, filters):
 	conditions = []
-	return frappe.db.sql("""select fieldname, label, fieldtype from `tabDocField`
-		where fieldtype not like '%%break%%'
-			and ({key} like %(txt)s
-				or label like %(txt)s)
+	resp = frappe.db.sql("""select fieldname, label, fieldtype from `tabDocField`
+		where 1 = 1 and ({key} like %(txt)s or label like %(txt)s)
 			{fcond} {mcond}
 		order by
 			if(locate(%(_txt)s, fieldname), locate(%(_txt)s, fieldname), 99999),
@@ -26,6 +24,9 @@ def docfield_query(doctype, txt, searchfield, start, page_len, filters):
 			'start': start,
 			'page_len': page_len
 		})
+
+	resp = (('name', 'Name', 'Data'),) + resp if resp else ()
+	return resp
 
 # searches for transaction doctypes
 def voucher_type_query(doctype, txt, searchfield, start, page_len, filters):
