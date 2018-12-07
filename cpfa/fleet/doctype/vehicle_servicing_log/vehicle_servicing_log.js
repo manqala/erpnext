@@ -59,13 +59,25 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	            }
 	        }
 	    });
-	    //console.log("ran to the end");
 	  },
 		refresh:function(frm){
 			if(frm.doc.__islocal){
-			;
+				console.log("unsaved");
+				var today = new Date();
+				var dd = today.getDate();
+				var mm = today.getMonth()+1; //January is 0!
+				var yyyy = today.getFullYear();
+				if(dd<10) {
+						dd = '0'+dd
+				}
+				if(mm<10) {
+						mm = '0'+mm
+				}
+				today = yyyy + '-' + mm + '-' + dd;
+				frm.set_value("service_date",today)
 			}
 			else{
+				console.log("saved");
 				cur_frm.add_custom_button(("Return Vehicle"),function(ev){
 					frm.doc.service_status="Returned"
 					cur_frm.refresh_field("service_status")
@@ -102,7 +114,7 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 				    mm = '0'+mm
 				}
 				today = yyyy + '-' + mm + '-' + dd;
-				cur_frm.set_value("service_date",today)
+				//cur_frm.set_value("service_date",today)
 		},
 		expected_return_date:function(frm){
 			let service_date=cur_frm.doc.service_date

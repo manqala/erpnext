@@ -18,9 +18,7 @@ app_license = "MIT"
 # app_include_css = "/assets/cpfa/css/cpfa.css"
 # app_include_js = "/assets/cpfa/js/cpfa.js"
 
-app_include_js = ["/assets/cpfa/js/cpfa.js",
-					 "js.linkformat.js",]
-
+app_include_js = "assets/js/linkformat.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/cpfa/css/cpfa.css"
@@ -35,7 +33,6 @@ app_include_js = ["/assets/cpfa/js/cpfa.js",
 doctype_js = {
 	"Salary Slip" : "public/js/custom_hr.js",
 	"Vehicle" : "public/js/filter_model.js",
-	#"Vehicle Servicing Log": "public/js/calculate_total.js",
 }
 
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}

@@ -1,4 +1,11 @@
 frappe.ui.form.on('Vehicle',{
+
+  change_vehicle_location:function(frm) {
+          // $(frm.fields_dict.vehicle_location.input).on('click', function(e){
+            cur_frm.set_df_property("vehicle_location","read_only",false)
+            cur_frm.refresh_field("vehicle_location")
+          // });
+      },
   vehicle_make: function(frm){
     cur_frm.set_query("vehicle_model",function(){
       return {
@@ -17,12 +24,24 @@ frappe.ui.form.on('Vehicle',{
 
   },
   refresh: function(frm){
+    frm.set_df_property("vehicle_location","read_only",frm.doc.__islocal ? 0 : 1)
     if(frm.doc.__islocal){
       ;
-      console.log("unsaved");
     }
     else{
-      console.log("saved");
+      if(cur_frm.doc.vehicle_location!==undefined){
+         var location=cur_frm.doc.vehicle_location
+        frappe.call({
+          method:"cpfa.utils.misc_methods.getVal",
+          args:{location:location},
+          callback:function(r){
+          cur_frm.set_value("location_name",r.message)
+          }
+        })
+      }
+      else {
+        ;
+      }
 		var name__=cur_frm.doc.name
 cur_frm.add_custom_button(("Vehicle Servicing Log"),function(ev){
 frappe.set_route("List","Vehicle Servicing Log",{"vehicle":name__})
@@ -47,23 +66,23 @@ cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
 doc=frappe.new_doc("Vehicle Trip Log")
 },("Create"))
 var model=frm.doc.vehicle_model
-frappe.call({
-  method:"cpfa.utils.misc_methods.getServiceTemp",
-  args:{model:model},
-  callback:function(response){
-    cur_frm.clear_table("service_details")
-       for(var o=0;o<response.message.length;o++){
-         frm.add_child("service_details")
-         frm.doc.service_details[o].service_item=response.message[o].service_item
-         frm.doc.service_details[o].type=response.message[o].type
-         frm.doc.service_details[o].mileage_interval=response.message[o].mileage_interval
-         frm.doc.service_details[o].mileage_uom=response.message[o].mileage_uom
-         frm.doc.service_details[o].frequency=response.message[o].frequency
-       }
-         frm.refresh_field("service_details")
-       console.log(response.message.length);
-  }
-})
+// frappe.call({
+//   method:"cpfa.utils.misc_methods.getServiceTemp",
+//   args:{model:model},
+//   callback:function(response){
+//     cur_frm.clear_table("service_details")
+//        for(var o=0;o<response.message.length;o++){
+//          frm.add_child("service_details")
+//          frm.doc.service_details[o].service_item=response.message[o].service_item
+//          frm.doc.service_details[o].type=response.message[o].type
+//          frm.doc.service_details[o].mileage_interval=response.message[o].mileage_interval
+//          frm.doc.service_details[o].mileage_uom=response.message[o].mileage_uom
+//          frm.doc.service_details[o].frequency=response.message[o].frequency
+//        }
+//          frm.refresh_field("service_details")
+//        console.log(response.message.length);
+//   }
+// })
 }
 },
  vehicle_model:function(frm){
@@ -129,10 +148,20 @@ if(docdate>today){
   frappe.throw("Selected date cannot be in the future.")
 }
 },
+vehicle_location: function(frm){
+  var location=cur_frm.doc.vehicle_location
+  frappe.call({
+    method:"cpfa.utils.misc_methods.getVal",
+    args:{location:location},
+    callback:function(r){
+    cur_frm.set_value("location_name",r.message)
+    }
+  })
+},
 carbon_check_date:function(frm){
   var today = new Date();
   var dd = today.getDate();
-  var mm = today.getMonth()+1; //January is 0!
+  var mm = today.getMonth()+1;
   var yyyy = today.getFullYear();
   if(dd<10) {
       dd = '0'+dd
@@ -147,7 +176,6 @@ carbon_check_date:function(frm){
     cur_frm.refresh_field("carbon_check_date")
     frappe.throw("Selected date cannot be in the future.")
   }
-
 }
 }),
 frappe.ui.form.on("Insurance Detail",{

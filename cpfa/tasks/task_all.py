@@ -4,7 +4,6 @@ import datetime
 
 
 def set_vehicle_status():
-	print("Starting......")
 	query="Select * from `tabVehicle Request` where status='Approved'"
 	result_set=frappe.db.sql(query,as_dict=1)
 	today=datetime.date.today()
@@ -16,4 +15,4 @@ def set_vehicle_status():
 			required_vehicle.status="Reserved"
 			required_vehicle.employee=employee
 			required_vehicle.save()
-	print("Sucessful!!")
+		

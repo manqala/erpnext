@@ -128,6 +128,11 @@ def getServiceTemp(model):
 	result_set=frappe.get_all("Service Plan Template",filters={"parent":model},fields=["service_item","type","frequency","mileage_interval","mileage_uom"] )
 	return(result_set)
 
+@frappe.whitelist()
+def getVal(location):
+	value=frappe.get_value("Vehicle Location",location,"vehicle_location")
+	return(value)
+	
 
 def autoname(doc,method):
 	# print '\n\n\nautoname', 'method', '\n\n\n'
