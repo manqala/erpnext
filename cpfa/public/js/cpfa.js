@@ -1,5 +1,5 @@
 
-$(function(){
+$( document ).ready(function(){
 	try {
 		
 		frappe.workflow.get_transitions = function(doctype, state){

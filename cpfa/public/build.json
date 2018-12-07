@@ -1,5 +1,14 @@
 {
+<<<<<<< HEAD
 	"js/linkformat.js": [
 		"public/js/linkformat.js"
 	]
+=======
+	"js/cpfa.js": [
+		"public/js/cpfa.js"
+	],
+	 "js/linkformat.js":[
+		 "public/js/link_format.js"
+	 ]
+>>>>>>> 7975580e77b9347c15b0e5b20257cd29d5ef38ea
 }
