@@ -57,7 +57,8 @@
      cur_frm.set_query("vehicle_assigned",function(){
        return {
          filters:{
-           "vehicle_type":cur_frm.doc.vehicle_type_required
+           "vehicle_type":cur_frm.doc.vehicle_type_required,
+           "status":"available",
          }
        }
      })

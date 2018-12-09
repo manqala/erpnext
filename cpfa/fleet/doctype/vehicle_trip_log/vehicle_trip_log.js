@@ -13,6 +13,15 @@ frappe.ui.form.on('Vehicle Trip Log', {
 // 			console.log("saved");
 // 		}
 // },
+refresh:function(frm){
+	cur_frm.set_query("vehicle_request",function(){
+		return {
+			filters:{
+				"status":"Approved"
+			}
+		}
+	})
+},
 mileage:function(frm){
 	var vehicle =frm.doc.vehicle
 	cur_val=frm.doc.mileage

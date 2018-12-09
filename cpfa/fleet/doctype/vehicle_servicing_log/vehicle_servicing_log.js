@@ -62,7 +62,6 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	  },
 		refresh:function(frm){
 			if(frm.doc.__islocal){
-				console.log("unsaved");
 				var today = new Date();
 				var dd = today.getDate();
 				var mm = today.getMonth()+1; //January is 0!
@@ -77,7 +76,6 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 				frm.set_value("service_date",today)
 			}
 			else{
-				console.log("saved");
 				cur_frm.add_custom_button(("Return Vehicle"),function(ev){
 					frm.doc.service_status="Returned"
 					cur_frm.refresh_field("service_status")

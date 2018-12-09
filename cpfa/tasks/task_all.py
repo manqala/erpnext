@@ -15,4 +15,3 @@ def set_vehicle_status():
 			required_vehicle.status="Reserved"
 			required_vehicle.employee=employee
 			required_vehicle.save()
-		

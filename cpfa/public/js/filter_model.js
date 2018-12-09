@@ -14,6 +14,7 @@ frappe.ui.form.on('Vehicle',{
         }
       }
     })
+  },
       // cur_frm.fields_dict["vehicle_model"].get_query=function(doc){
       //   return {
       //     filters:{
@@ -22,7 +23,7 @@ frappe.ui.form.on('Vehicle',{
       // }
       // }
 
-  },
+
   refresh: function(frm){
     frm.set_df_property("vehicle_location","read_only",frm.doc.__islocal ? 0 : 1)
     if(frm.doc.__islocal){
@@ -150,13 +151,18 @@ if(docdate>today){
 },
 vehicle_location: function(frm){
   var location=cur_frm.doc.vehicle_location
-  frappe.call({
-    method:"cpfa.utils.misc_methods.getVal",
-    args:{location:location},
-    callback:function(r){
-    cur_frm.set_value("location_name",r.message)
-    }
-  })
+  if(location){
+    frappe.call({
+      method:"cpfa.utils.misc_methods.getVal",
+      args:{location:location},
+      callback:function(r){
+      cur_frm.set_value("location_name",r.message)
+      }
+    })
+  }
+  else{
+    ;
+  }
 },
 carbon_check_date:function(frm){
   var today = new Date();

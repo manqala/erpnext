@@ -24,6 +24,12 @@ class VehicleServicingLog(Document):
 			vehicle.save()
 		else:
 			pass
+		if self.service_status=="Service In Progress":
+			vehicle.status="Undergoing Maintenance"
+			vehicle.save()
+		elif self.service_status=="Returned":
+			vehicle.status="Available"
+			vehicle.save()
 		return
 	# @frappe.whitelist()
 	# def getServicePlan(vn):
