@@ -60,22 +60,22 @@ def getServicePlan(vehicle_name):
 	return(container)
 
 @frappe.whitelist()
-def loader(name_):
-    new_insurance_company=frappe.new_doc("Insurance Company")
-    dynamic_address=frappe.new_doc("Address")
-    new_insurance_company.company_name=name_
-    new_insurance_company.save()
-    dynamic_address.append('links',{
-    	'link_doctype':"Insurance Company",
-    	'link_name':name_
-    })
-    dynamic_address.doctype_name=name_
-    return dynamic_address
+def loader(name_,target_doctype,location_doctype):
+    new_location=frappe.new_doc(location_doctype)
+    new_target=frappe.new_doc(target_doctype)
+    new_location.company_name=name_
+    new_location.save()
+    # dynamic_address.append('links',{
+    # 	'link_doctype':"Insurance Company",
+    # 	'link_name':name_
+    # })
+    new_target.doctype_name=name_
+    return(new_target)
 @frappe.whitelist()
-def loader2(name_):
-	dynamic_address=frappe.new_doc("Address")
-	dynamic_address.doctype_name=name_
-	return(dynamic_address)
+def loader2(name_,target_doctype):
+	new_target=frappe.new_doc(target_doctype)
+	new_target.doctype_name=name_
+	return(new_target)
 
 @frappe.whitelist()
 def address_loader(name_of_company):
@@ -132,7 +132,7 @@ def getServiceTemp(model):
 def getVal(location):
 	value=frappe.get_value("Vehicle Location",location,"vehicle_location")
 	return(value)
-	
+
 
 def autoname(doc,method):
 	# print '\n\n\nautoname', 'method', '\n\n\n'

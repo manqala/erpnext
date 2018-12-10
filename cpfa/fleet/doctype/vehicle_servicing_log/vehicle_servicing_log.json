@@ -187,7 +187,7 @@
    "read_only": 0, 
    "remember_last_selected_value": 0, 
    "report_hide": 0, 
-   "reqd": 0, 
+   "reqd": 1, 
    "search_index": 0, 
    "set_only_once": 0, 
    "unique": 0
@@ -386,7 +386,7 @@
  "issingle": 0, 
  "istable": 0, 
  "max_attachments": 0, 
- "modified": "2018-12-09 15:30:31.022394", 
+ "modified": "2018-12-10 22:39:14.580393", 
  "modified_by": "Administrator", 
  "module": "Fleet", 
  "name": "Vehicle Servicing Log", 

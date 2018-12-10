@@ -71,22 +71,45 @@ frappe.ui.form.on('Insurance Company', {
 			}
  	})
 }
+else{
+	$(cur_frm.fields_dict['contact'].wrapper)
+		 .html("");
+		 $(cur_frm.fields_dict['address'].wrapper)
+		 	.html("");
+}
 },
 				add_contact:function(frm){
-					frappe.call({
-						args:{"name_":cur_frm.doc.name},
-						method:"cpfa.utils.misc_methods.getContacts",
+					if(!cur_frm.doc.__islocal){
+					 	console.log("saved");
+						frappe.call({
+						args:{name_:cur_frm.doc.company_name,target_doctype:"Contact"},
+						method:"cpfa.utils.misc_methods.loader2",
 						callback:function(r){
 							let doc=frappe.model.sync(r.message);
 							frappe.set_route("Form","Contact",r.message.name)
 						}
 					})
+				}
+				else{
+				 	console.log("unsaved");
+					if(frm.doc.company_name==undefined){
+						frappe.throw("Insurance Company field cannot be empty")
+					}
+					frappe.call({
+					args:{name_:cur_frm.doc.company_name,location_doctype:cur_frm.doc.doctype,target_doctype:"Contact"},
+					method:"cpfa.utils.misc_methods.loader",
+					callback:function(r){
+						var doc=frappe.model.sync(r.message)
+						 frappe.set_route("Form","Contact", r.message.name)
+					}
+				})
+				}
 				},
 				add_address:function(frm){
-					var name_=cur_frm.doc.company_name
 					if(!cur_frm.doc.__islocal){
+						console.log("saved");
 						frappe.call({
-							args:{"name_":cur_frm.doc.company_name},
+							args:{name_:cur_frm.doc.company_name,target_doctype:"Address"},
 							method:"cpfa.utils.misc_methods.loader2",
 							callback:function(r){
 								var doc=frappe.model.sync(r.message)
@@ -96,9 +119,12 @@ frappe.ui.form.on('Insurance Company', {
 						})
 					}
 					else{
-					var name_=cur_frm.doc.company_name
+						console.log("unsaved");
+						if(frm.doc.company_name==undefined){
+							frappe.throw("Insurance Company field cannot be empty")
+						}
 					frappe.call({
-						args:{"name_":cur_frm.doc.company_name},
+						args:{name_:cur_frm.doc.company_name,location_doctype:cur_frm.doc.doctype,target_doctype:"Address"},
 						method:"cpfa.utils.misc_methods.loader",
 						callback:function(r){
 							var doc=frappe.model.sync(r.message)

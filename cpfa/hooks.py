@@ -132,10 +132,11 @@ doc_events = {
 
 scheduler_events = {
 	"all": [
-		"cpfa.tasks.task_all.set_vehicle_status"
+		""
 	],
 	"daily_long": [
-		"cpfa.cpfa.doctype.azure_storage_backup_settings.azure_storage_backup_settings.take_backups_daily"
+		"cpfa.cpfa.doctype.azure_storage_backup_settings.azure_storage_backup_settings.take_backups_daily",
+		"cpfa.tasks.task_all.set_vehicle_status",
 	],
 	"weekly_long": [
 		"cpfa.cpfa.doctype.azure_storage_backup_settings.azure_storage_backup_settings.take_backups_weekly",

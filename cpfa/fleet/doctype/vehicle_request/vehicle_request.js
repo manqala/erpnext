@@ -8,13 +8,7 @@
        ;
      }
      else{
-       frappe.form.link_formatters['Employee'] = function(value, doc) {
-    if(doc.employee_name && doc.employee_name !== value) {
-        return value + ': ' + doc.employee_name;
-    } else {
-        return value;
-    }
-}
+
        cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
          var docname=cur_frm.doc.name
          var employee=frm.doc.employee
