@@ -1,5 +1,6 @@
 {
-	"js/linkformat.js": [
-		"public/js/linkformat.js"
+	"js/cpfa.js": [
+		"public/js/linkformat.js",
+		"public/js/cpfa.js"
 	]
 }

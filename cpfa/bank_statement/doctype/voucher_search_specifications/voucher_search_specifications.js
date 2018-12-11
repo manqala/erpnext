@@ -37,13 +37,11 @@ for (var i = 1; i <= 10; i++){
 	});
 	
 	frappe.ui.form.on('Voucher Search Key', field, function(frm, dt, dn){
-		var doc = locals[dt][dn];
-		var val = doc[field];
-		if ((doc.search_key_specification || '').indexOf(val) !== -1){
-			frappe.model.set_value(dt, dn, field, '');
-			return;
+		var field_no = field[field.length-1];
+		if (field_no == '0'){
+			field_no = field.slice(field.length-2)
 		}
-		cpfa.transform_fields(dn);
+		cpfa.transform_fields(dn, field_no);
 	})
 
 	frappe.ui.form.on('Voucher Search Key', `field_${i}_transformation_rule`,
@@ -61,15 +59,16 @@ frappe.ui.form.on('Voucher Search Key', 'separator', function(frm, dt, dn){
 	cpfa.transform_fields(dn);
 })
 
-cpfa.transform_fields = function(dn, field){
+cpfa.transform_fields = function(dn, idx){
 	var dt = 'Voucher Search Key';
 	frappe.call({
 		method: 'transform_fields',
-		args: {dn: dn},
+		args: {dn: dn, idx: idx},
 		doc: cur_frm.doc,
 		callback: function(r){
 			var txt = r ? (r.message || '') : '';
 			frappe.model.set_value(dt, dn, "search_key_specification", txt);
+			cur_frm.refresh_fields()
 		}
 	})	
 }
