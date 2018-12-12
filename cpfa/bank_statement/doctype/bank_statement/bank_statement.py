@@ -198,7 +198,7 @@ class BankStatement(Document):
 			# create bank_statement_item table entries
 			self.append('bank_statement_items', sta)
 		
-		self.save()
+		#self.save()
 
 	def eval_transformation(self, eval_code, source_abbr, eval_data):
 		if not eval_code:
@@ -248,23 +248,61 @@ class BankStatement(Document):
 			against_voucher_type from `tabGL Entry` where \
 			against_voucher_type IS NOT NULL group by against_voucher", as_dict=1)
 		
-		for bank_statement_item in self.bank_statement_items:
-			if not bank_statement_item.transaction_type:
+		for idx,row in enumerate(self.bank_statement_items):
+			if not row.transaction_type:
 				continue
+			
+			row.set('status', 'Pending')
 			for itm in open_txns:
+				if itm.amount == 0:
+					continue
 				dt,dn = itm.against_voucher_type, itm.against_voucher
 				doc = frappe.get_value(dt, dn, '*')
 				doc.doctype = dt
 				key = vss.get_search_key(doc)
-				match = search_text(key, bank_statement_item.transaction_description, 26)
+				match = search_text(key, row.transaction_description, 26)
 				if match:
-					bank_statement_item.set('status', key)
-					processed_rows.append(doc)
+					self.make_posting(row, doc)
+					processed_rows.append(' [Row:%s  Voucher:%s] '%(idx+1,doc.name))
+				else:
+					row.set('status', 'Not Started');
+			if row.gl_debit_account and row.gl_credit_account:
+				row.set('status', 'Completed')
+		
 		if processed_rows:
-			frappe.msgprint('The following rows were processed: <br> row {}'.format(', row '.join(processed_rows)))
+			frappe.msgprint('The following rows were processed: <br> {}'.format(', row '.join(processed_rows)))
 		else:
 			frappe.msgprint('0 rows processed', indicator='red')
-		#self.save()
+		
+		self.save()
+
+	def make_posting(self, statement_item, voucher):
+		done = []
+		gl_entry = None
+		txn_type = frappe.get_doc('Bank Transaction Type',
+						statement_item.transaction_type)
+		accounts = self.get_gl_entries(voucher)
+		for row in txn_type.journal_template:
+			if row.dr_or_cr in done:
+				continue
+			if row.dr_or_cr == 'DR':
+				acc_field = 'jl_debit_account'
+				gl_entry = next((r for r in accounts if r.debit>0),None)
+				if gl_entry:
+					statement_item.set('gl_debit_account',gl_entry.account)
+			elif row.dr_or_cr == 'CR':
+				acc_field = 'jl_credit_account'
+				gl_entry = next((r for r in accounts if r.credit>0),None)
+				if gl_entry:
+					statement_item.set('gl_credit_account',gl_entry.account)
+			statement_item.set(acc_field, row.account)
+			done.append(row.dr_or_cr)
+
+	def get_gl_entries(self, voucher):
+		return frappe.db.sql("SELECT account,credit,debit FROM \
+			`tabGL Entry` WHERE against_voucher = '{}' AND \
+			against_voucher_type = '{}'".format(voucher.name,
+				voucher.doctype), as_dict=1)
 
 def get_source_abbr(source_field, bank_statement_mapping_items):
 	for row in bank_statement_mapping_items:
@@ -327,20 +365,6 @@ def get_txn_type(self, idx, itm):
 		get_ret_msg(ret_list)
 		return
 	return match_type[0].name
-
-def make_query(pairs):
-	if not isinstance(pairs, list):
-		return ''
-	query = ''
-	for pair in pairs:
-		if not isinstance(pair, dict):
-			continue
-		for key in pair:
-			if isinstance(pair[key], basestring):
-				query += " and {0} = '{1}'".format(key, pair[key])
-				continue
-			query += " and {0} = {1}".format(key, pair[key])
-	return query
 
 def get_open_third_party_documents_using_search_fields(search_fields, txn,
 		allocated_entries=[]):
@@ -426,22 +450,6 @@ def search_text(text, base_text, flags=0):
 	if match:
 		return found
 
-def print_variables(var_list, local={}):
-	'''Print list of variable to terminal'''
-	if not isinstance(var_list, list):
-		return
-	if not isinstance(local, dict):
-		local = local()
-	
-	for var in var_list:
-		name = var
-		var = local.get(name)
-		if '.' in name:
-			var = local.get(name.split('.')[0])
-			for atr in name.split('.')[1:]:
-				var = getattr(var, atr, None)
-				if '()' in atr: var = getattr(var, atr, None)()
-			name = name.split('.')[0]
 
 def is_float(value):
 	try:

@@ -7,6 +7,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint
+from datetime import datetime
+
 
 class VoucherSearchSpecifications(Document):
 	def __init__(self, *args, **kwargs):
@@ -35,17 +37,24 @@ class VoucherSearchSpecifications(Document):
 				else:
 					res.append(field_val)
 		if not duplicate:
-			return (row.separator or '-').join(res)
+			return (row.separator or '-').join(map(str, res))
 		return row.search_key_specification
 
 	def transform_field(self, field, dn):
 		eval_rule_field = field + '_transformation_rule'
 		row = [r for r in self.voucher_search_keys if r.name==dn][0]
+		field_val = row.get(field, '')
 		eval_code = row.get(eval_rule_field, '')
+		docfield = frappe.get_meta(row.voucher_type).get_field(field_val)
+		if docfield:
+			if docfield.fieldtype == 'Date':
+				field_val = datetime.now().date()
+			elif docfield.fieldtype == 'Time':
+				field_val = datetime.now().time()
 		if not eval_code:
 			return
 
-		eval_data = {field: row.get(field, '')}
+		eval_data = {field: field_val}
 		
 		try:
 			return frappe.safe_eval(eval_code, None, eval_data)
@@ -69,10 +78,10 @@ class VoucherSearchSpecifications(Document):
 			eval_rule = row.get(eval_rule_field, '')
 			if field_name:
 				val = doc.get(field_name)
-				if eval_rule:
+				if eval_rule and val != None:
 					eval_rule = eval_rule.replace(field, field_name)
 					eval_data = {field_name: val}
 					val = frappe.safe_eval(eval_rule, None, eval_data)
 				if val != None:
 					vals.append(val)
-		return (row.separator or '-').join(vals)
+		return (row.separator or '-').join(map(str, vals))
