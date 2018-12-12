@@ -133,6 +133,11 @@ def getVal(location):
 	value=frappe.get_value("Vehicle Location",location,"vehicle_location")
 	return(value)
 
+@frappe.whitelist()
+def getRequest(vehicle_type):
+	new_request=frappe.new_doc("Vehicle Request")
+	new_request.vehicle_type_required=vehicle_type
+	return(new_request)
 
 def autoname(doc,method):
 	# print '\n\n\nautoname', 'method', '\n\n\n'

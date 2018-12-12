@@ -9,11 +9,18 @@ from frappe.model.document import Document
 class VehicleTripLog(Document):
 	pass
 
+	def autoname(self):
+		self.name=self.vehicle_request+"_"+self.trip_type
+		return
+
 	def validate(self):
 		vehicle=frappe.get_doc("Vehicle",self.vehicle)
 		vehicle.odometer_value=self.mileage
 		if self.trip_type=="Trip":
 			vehicle.status="Available"
+			vehicle_request=frappe.get_doc("Vehicle Request", self.vehicle_request)
+			vehicle_request.status="Returned"
+			vehicle_request.save()
 		vehicle.save()
 		return
 

@@ -15,6 +15,11 @@ class VehicleRequest(Document):
 		return
 
 
+@frappe.whitelist()
+def get_value(doctype,docname,fieldname):
+	value=frappe.get_value(doctype,docname,fieldname)
+	return(value)
+
 
 
 @frappe.whitelist()

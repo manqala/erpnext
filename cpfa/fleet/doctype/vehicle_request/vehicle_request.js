@@ -6,9 +6,18 @@
      frm.set_df_property("employee","read_only",frm.doc.__islocal ? 0 : 1)
      if(frm.doc.__islocal){
        ;
+       if(frm.doc.vehicle_type_required){
+         cur_frm.set_query("vehicle_assigned",function(){
+           return {
+             filters:{
+               "vehicle_type":cur_frm.doc.vehicle_type_required,
+               "status":"available",
+             }
+           }
+         })
+       }
      }
      else{
-
        cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
          var docname=cur_frm.doc.name
          var employee=frm.doc.employee
@@ -26,6 +35,24 @@
        },("Create"))
      }
    },
+   employee:function(frm){
+     if(frm.doc.employee==undefined){
+       ;
+     }
+     else{
+     frappe.call({
+       method:"cpfa.fleet.doctype.vehicle_request.vehicle_request.get_value",
+       args:{
+         doctype:"Employee",
+         docname:frm.doc.employee,
+         fieldname:"employee_name"
+       },
+       callback:function(r){
+         cur_frm.set_value("employee_name",r.message)
+       }
+     })
+   }
+ },
     date_required:function(frm) {
    	var today = new Date();
    	var dd = today.getDate();

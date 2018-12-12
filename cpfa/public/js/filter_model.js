@@ -1,5 +1,4 @@
 frappe.ui.form.on('Vehicle',{
-
   change_vehicle_location:function(frm) {
           // $(frm.fields_dict.vehicle_location.input).on('click', function(e){
             cur_frm.set_df_property("vehicle_location","read_only",false)
@@ -65,6 +64,21 @@ vehicle_model=frm.doc.vehicle_model
 },("Create"))
 cur_frm.add_custom_button(("Vehicle Trip Log"),function(ev){
 doc=frappe.new_doc("Vehicle Trip Log")
+},("Create"))
+cur_frm.add_custom_button(("Vehicle Request"),function(ev){
+var vehicle_type=frm.doc.vehicle_type
+if(vehicle_type==undefined){
+  ;
+}
+else{
+frappe.call({
+  method:"cpfa.utils.misc_methods.getRequest",
+  args:{vehicle_type:vehicle_type},
+  callback:function(r){
+   var doc=frappe.model.sync(r.message)
+   frappe.set_route("Form","Vehicle Request",r.message.name)
+  }
+})}
 },("Create"))
 var model=frm.doc.vehicle_model
 // frappe.call({
