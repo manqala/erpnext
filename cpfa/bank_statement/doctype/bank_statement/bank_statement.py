@@ -251,8 +251,10 @@ class BankStatement(Document):
 		for idx,row in enumerate(self.bank_statement_items):
 			if not row.transaction_type:
 				continue
-			
-			row.set('status', 'Pending')
+			data = dict()
+			data['status'] = 'Pending'
+			data['amount'] = row.credit_amount or row.debit_amount
+			found = 0
 			for itm in open_txns:
 				if itm.amount == 0:
 					continue
@@ -262,12 +264,14 @@ class BankStatement(Document):
 				key = vss.get_search_key(doc)
 				match = search_text(key, row.transaction_description, 26)
 				if match:
-					self.make_posting(row, doc)
+					found += 1
+					self.make_posting(row, doc, data)
 					processed_rows.append(' [Row:%s  Voucher:%s] '%(idx+1,doc.name))
-				else:
-					row.set('status', 'Not Started');
+			if not found:
+				data['status'] = 'Not Started'
 			if row.gl_debit_account and row.gl_credit_account:
-				row.set('status', 'Completed')
+				data['status'] = 'Completed'
+			row.update(data);
 		
 		if processed_rows:
 			frappe.msgprint('The following rows were processed: <br> {}'.format(', row '.join(processed_rows)))
@@ -276,7 +280,7 @@ class BankStatement(Document):
 		
 		self.save()
 
-	def make_posting(self, statement_item, voucher):
+	def make_posting(self, statement_item, voucher, data):
 		done = []
 		gl_entry = None
 		txn_type = frappe.get_doc('Bank Transaction Type',
@@ -286,17 +290,38 @@ class BankStatement(Document):
 			if row.dr_or_cr in done:
 				continue
 			if row.dr_or_cr == 'DR':
-				acc_field = 'jl_debit_account'
+				data['jl_debit_account'] = row.account
 				gl_entry = next((r for r in accounts if r.debit>0),None)
 				if gl_entry:
-					statement_item.set('gl_debit_account',gl_entry.account)
+					data['gl_debit_account'] = gl_entry.account
 			elif row.dr_or_cr == 'CR':
-				acc_field = 'jl_credit_account'
+				data['jl_credit_account'] = row.account
 				gl_entry = next((r for r in accounts if r.credit>0),None)
 				if gl_entry:
-					statement_item.set('gl_credit_account',gl_entry.account)
-			statement_item.set(acc_field, row.account)
+					data['gl_credit_account'] = gl_entry.account
 			done.append(row.dr_or_cr)
+		#self.clear_voucher(voucher, data)
+		self.make_jv(voucher, data)
+
+	def make_jv(self, voucher, data):
+		journal_entry = frappe.new_doc('Journal Entry')
+		journal_entry.posting_date = frappe.utils.getdate()
+		journal_entry.company = frappe.get_value('Bank',self.bank,'company')
+		# credit
+		journal_entry.append('accounts',{
+			'account':data['jl_credit_account'],
+			'credit_in_account_currency':data['amount'],
+			'debit_in_account_currency': 0.0,
+		})
+		# debit
+		journal_entry.append('accounts',{
+			'account':data['jl_debit_account'],
+			'debit_in_account_currency': data['amount'],
+			'credit_in_account_currency': 0.0,
+		})
+		
+		journal_entry.save(ignore_permissions=True)
+		journal_entry.submit()
 
 	def get_gl_entries(self, voucher):
 		return frappe.db.sql("SELECT account,credit,debit FROM \
