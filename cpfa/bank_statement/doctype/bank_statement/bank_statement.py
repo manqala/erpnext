@@ -125,14 +125,7 @@ class BankStatement(Document):
 
 		return mapping_row.target_field, csv_row_field_value
 
-	def fill_table(self):
-		if not self.file:
-			return
-		
-		file_doc = frappe._dict()
-		self.bank_statement_items = []
-		bank_statement_mapping_items = frappe.get_doc("Bank Statement Format", self.bank_statement_format).bank_statement_mapping_item
-		
+	def load_attached_file(self):
 		file_id = frappe.db.sql("""SELECT name FROM tabFile WHERE
 			attached_to_doctype = '{0}' AND attached_to_name = '{1}'
 			""".format("Bank Statement", self.name), as_dict=1)
@@ -152,39 +145,59 @@ class BankStatement(Document):
 			rows = read_csv_content(fcontent)
 		else:
 			frappe.throw(_("Unsupported File Format"))
+		return rows
 
-		csv_header_list = rows[0]
+	@property
+	def statement_format(self):
+		if not self.get('_statement_format'):
+			self._statement_format = frappe.get_doc(
+				"Bank Statement Format",
+				self.bank_statement_format
+			)
+		return self._statement_format
+
+	def get_mapped(self, row, headers, items):
+		eval_data = self.get_eval_data(row, headers, items)
+		sta_item = dict()
+		for col_idx, col_val in enumerate(row):
+			col_val = str(col_val) if col_val else None
+			itm = self.convert_to_internal_format(headers[col_idx],
+					col_val, items, eval_data)
+			
+			if not itm:
+				continue
+			
+			target_field, eval_result = itm
+			sta_item[frappe.scrub(target_field)] = eval_result
+
+		return sta_item
+
+	def fill_table(self):
+		if not self.file:
+			return
+		
+		self.bank_statement_items = []
+		statement_map_itms = self.statement_format.bank_statement_mapping_item
+		rows = self.load_attached_file()
+		file_headers = rows[0]
 		data_rows = rows[1:]
 
-		self.check_file_format(csv_header_list)
+		self.check_file_format(file_headers)
 
-		intermediate_bank_statement_items = []
+		intermediate_statement_itms = []
 		# create a list of maps, intermediate_bank_statement_items, to hold bank statement items based on internal
 		# representation see "Bank Statement Item" definition
 		for statement_row in data_rows:
-			bank_sta_item = dict()
-			eval_data = self.get_data_for_eval(statement_row,
-					csv_header_list,bank_statement_mapping_items)
-			
-			for column_index, column_value in enumerate(statement_row):
-				column_value = str(column_value) if column_value else None
-				itm = self.convert_to_internal_format(
-					csv_header_list[column_index],
-					column_value, bank_statement_mapping_items,
-					eval_data)
-				
-				if not itm:
-					continue
-				
-				target_field, eval_result = itm
-				bank_sta_item[frappe.scrub(target_field)] = eval_result
-			
-			intermediate_bank_statement_items.append(bank_sta_item) if bank_sta_item else None
-
-		for idx, sta in enumerate(intermediate_bank_statement_items):
+			sta_item = self.get_mapped(statement_row, file_headers,
+							statement_map_itms)
+			if sta_item:
+				intermediate_statement_itms.append(sta_item)
+		
+		for idx, sta in enumerate(intermediate_statement_itms):
 			sta['transaction_type'] = get_txn_type(self, idx+1, sta)
-			self.append('bank_statement_items', sta)  # create bank_statement_item table entries
-
+			# create bank_statement_item table entries
+			self.append('bank_statement_items', sta)
+		
 		self.save()
 
 	def eval_transformation(self, eval_code, source_abbr, eval_data):
@@ -203,7 +216,7 @@ class BankStatement(Document):
 			frappe.throw(_("Error in formula or condition: {0}".format(e)))
 			raise
 
-	def get_data_for_eval(self, statement_row, csv_header_list,
+	def get_eval_data(self, statement_row, csv_header_list,
 		bank_statement_mapping_items):
 		'''Returns data object for evaluating formula'''
 		data = frappe._dict()
@@ -229,63 +242,29 @@ class BankStatement(Document):
 	def process_statement(self):
 		allocated_entries = []
 		processed_rows = []
+		vss = frappe.get_doc('Voucher Search Specifications');
+		open_txns = frappe.db.sql("select name, account, \
+			(sum(debit)-sum(credit)) as `amount`, against_voucher, \
+			against_voucher_type from `tabGL Entry` where \
+			against_voucher_type IS NOT NULL group by against_voucher", as_dict=1)
+		
 		for bank_statement_item in self.bank_statement_items:
 			if not bank_statement_item.transaction_type:
 				continue
-			txn_type = frappe.get_doc('Bank Transaction Type', bank_statement_item.transaction_type)
-			if txn_type.debit_account_party_type:
-				# create new item in bank_statement_item.third_party_journal_items
-				# set debit_account_type of newly created third_party_journal_item to 
-				# bank_statement_item.txn_type.debit_account_party_type
-				if not txn_type.debit_account:
-					dr_open_items = get_open_third_party_documents_using_search_fields(
-						txn_type.search_fields_third_party_doc_dr,
-						bank_statement_item, allocated_entries)
-
-					if len(dr_open_items) >= 1:
-						# set debit_account of of newly created third_party_journal_item to
-						# dr_open_items[0].third_party
-						bank_statement_item.jl_credit_account = dr_open_items[0].account
-						allocated_entries.append(dr_open_items[0].gl_entry)
-						processed_rows.append(str(bank_statement_item.idx))
-					else:
-						continue
-				else:
-					# set debit_account of of newly created third_party_journal_item to
-					# bank_statement_item.txn_type.debit_account
-					bank_statement_item.set('jl_credit_account', txn_type.debit_account)
-					processed_rows.append(str(bank_statement_item.idx))
-
-			if txn_type.credit_account_party_type:
-				# create new item in bank_statement_item.third_party_journal_items
-				# set credit_account_type of newly created third_party_journal_item to
-				# bank_statement_item.txn_type.credit_account_party_type
-				if not txn_type.credit_account:
-					cr_open_items = get_open_third_party_documents_using_search_fields(
-						txn_type.search_fields_third_party_doc_cr,
-						bank_statement_item, allocated_entries)
-
-					if len(cr_open_items) >= 1:
-						# set credit_account of of newly created third_party_journal_item to
-						# cr_open_items[0].third_party
-						bank_statement_item.jl_credit_account = cr_open_items[0].account
-						bank_statement_item.jl_credit_account_type = frappe.db.get_value(
-							'Account', cr_open_items[0].account,'account_type')
-						allocated_entries.append(cr_open_items[0].gl_entry)
-						processed_rows.append(str(bank_statement_item.idx))
-					else:
-						continue
-				else :
-					# set credit_account of of newly created third_party_journal_item to
-					# bank_statement_item.txn_type.credit_account
-					bank_statement_item.set('jl_credit_account', txn_type.credit_account)
-					processed_rows.append(str(bank_statement_item.idx))
-		
+			for itm in open_txns:
+				dt,dn = itm.against_voucher_type, itm.against_voucher
+				doc = frappe.get_value(dt, dn, '*')
+				doc.doctype = dt
+				key = vss.get_search_key(doc)
+				match = search_text(key, bank_statement_item.transaction_description, 26)
+				if match:
+					bank_statement_item.set('status', key)
+					processed_rows.append(doc)
 		if processed_rows:
 			frappe.msgprint('The following rows were processed: <br> row {}'.format(', row '.join(processed_rows)))
 		else:
 			frappe.msgprint('0 rows processed', indicator='red')
-		self.save()
+		#self.save()
 
 def get_source_abbr(source_field, bank_statement_mapping_items):
 	for row in bank_statement_mapping_items:
@@ -314,15 +293,20 @@ def get_txn_type(self, idx, itm):
 
 	itm = frappe._dict(itm)
 	ret_list = []
-	txn_type_derivation = frappe.db.get_value("Bank Statement Format", self.bank_statement_format, 'txn_type_derivation')
-	if not txn_type_derivation == "Derive Using Bank Transaction Type": return
 	match_type = []
+	
+	txn_type_derivation = frappe.db.get_value("Bank Statement Format",
+		self.bank_statement_format, 'txn_type_derivation')
+	
+	if txn_type_derivation != "Derive Using Bank Transaction Type":
+		return
 	if itm.credit_amount:
 		DR_or_CR = 'CR'
 	elif itm.debit_amount:
 		DR_or_CR = 'DR'
 	else:
 		DR_or_CR = None
+	
 	bnks_txn_types = frappe.get_all('Bank Transaction Type',
 		filters={'bank_statement_format': self.bank_statement_format,
 				 'debit_or_credit': DR_or_CR},
@@ -374,16 +358,8 @@ def get_open_third_party_documents_using_search_fields(search_fields, txn,
 		return
 
 	for s_field in search_fields:
-		#search for all documents in general ledger where outstanding amount <> 0 and value of search_field in document is 
-		#contained in txn_description. Append result to found_documents
 
 		try:
-			#query = """select name, account, against_voucher,
-			#	against_voucher_type,{0} from `tabGL Entry` where
-			#	against_voucher_type IS NOT NULL{1}""".format(
-			#									search_field,
-			#									make_query(matches))
-			#result = frappe.db.sql(query, as_dict=1)
 			for res in result:
 				if res.name in allocated_entries:
 					continue

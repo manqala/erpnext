@@ -199,18 +199,18 @@ sample_statement = [
 		'Credit': '',
 		'Balance': '4000',
 		'Remarks': '''TRANSFER BETWEEN CUSTOMERS
-			000015161022112026000086713238 T40 OCTOBER PAYMENT
+			PINV-00001 T40 OCTOBER PAYMENT
 			AND 500 UNITS T40 OCTOBER PAYMENT AND 500 UNITS
 			_TEST CUSTOMER to ABC ESTATE RESD.&OWNER'''
 	},{
 		'Trans Date': '24-Oct-16',
 		'Reference': '',
 		'Value Date': '24-Oct-16',
-		'Debit': '1000',
-		'Credit': '',
-		'Balance': '4000',
+		'Debit': '',
+		'Credit': '1000',
+		'Balance': '5000',
 		'Remarks': '''TRANSFER BETWEEN CUSTOMERS
-			000005161022112802000770301103 NIP - TRF IFO
+			SINV-00001/ABCSUPP NIP - TRF IFO
 			RIVTAF GOLF ESTATE RESD.andOWNER. 10 106::482701520
 			_TEST CUSTOMER to ABC ESTATE RESD.&OWNER'''
 	}
