@@ -31,7 +31,7 @@ frappe.ui.form.on('Bank Statement', {
 						$('.msgprint hr').attr('style', 'margin: 3px');
 					}
 					setTimeout(set_margin, 300);
-					frm.refresh_field('bank_statement_items');
+					frm.refresh();
 				}
 			})
 		});

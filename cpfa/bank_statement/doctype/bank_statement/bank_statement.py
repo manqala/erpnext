@@ -262,6 +262,8 @@ class BankStatement(Document):
 				doc = frappe.get_value(dt, dn, '*')
 				doc.doctype = dt
 				key = vss.get_search_key(doc)
+				if not key:
+					continue
 				match = search_text(key, row.transaction_description, 26)
 				if match:
 					found += 1
@@ -274,7 +276,7 @@ class BankStatement(Document):
 			row.update(data);
 		
 		if processed_rows:
-			frappe.msgprint('The following rows were processed: <br> {}'.format(', row '.join(processed_rows)))
+			frappe.msgprint('The following rows were processed: <br> {}'.format(', '.join(processed_rows)))
 		else:
 			frappe.msgprint('0 rows processed', indicator='red')
 		

@@ -15,8 +15,14 @@ class VoucherSearchSpecifications(Document):
 		super(VoucherSearchSpecifications, self).__init__(*args, **kwargs)
 		self.flags.ignore_links = True
 
+	def get_spec_row(self, key, val):
+		return next((r for r in self.voucher_search_keys if \
+					 r.get(key)==val),None)
+
 	def transform_fields(self, dn, idx=None):
-		row = [r for r in self.voucher_search_keys if r.name==dn][0]
+		row = self.get_spec_row('name', dn)
+		if not row:
+			return
 		duplicate = False
 		res = []
 		for i in range(1, 11):
@@ -42,7 +48,9 @@ class VoucherSearchSpecifications(Document):
 
 	def transform_field(self, field, dn):
 		eval_rule_field = field + '_transformation_rule'
-		row = [r for r in self.voucher_search_keys if r.name==dn][0]
+		row = self.get_spec_row('name', dn)
+		if not row:
+			return
 		field_val = row.get(field, '')
 		eval_code = row.get(eval_rule_field, '')
 		docfield = frappe.get_meta(row.voucher_type).get_field(field_val)
@@ -69,8 +77,9 @@ class VoucherSearchSpecifications(Document):
 	def get_search_key(self, doc):
 		"""returns a key as specified in the search key spec"""
 		vals = []
-		dn = doc.doctype
-		row = [r for r in self.voucher_search_keys if r.voucher_type==dn][0]
+		row = self.get_spec_row('voucher_type', doc.doctype)
+		if not row:
+			return
 		for i in range(1, 11): #for fields field_1 to field_10
 			field = 'field_%s'%i
 			eval_rule_field = field + '_transformation_rule'
