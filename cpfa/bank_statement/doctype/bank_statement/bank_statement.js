@@ -82,7 +82,6 @@ frappe.ui.form.on('Bank Statement', {
 		}
 	},
 	set_account_type_options: function(doc, cdt, cdn) {
-        console.log('rendered')
 		var df1 = frappe.meta.get_docfield("Bank Statement Item","jl_debit_account_type", cur_frm.doc.name);
 		df1.options = account_types
 		var df2 = frappe.meta.get_docfield("Bank Statement Item","jl_credit_account_type", cur_frm.doc.name);

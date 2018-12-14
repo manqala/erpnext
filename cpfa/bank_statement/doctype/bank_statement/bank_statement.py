@@ -278,11 +278,21 @@ class BankStatement(Document):
 	@property
 	def open_txns(self):
 		if not self.get('_open_txns'):
-			self._open_txns = frappe.db.sql("select name, account, \
+			self._open_txns = []
+			vss = frappe.get_doc('Voucher Search Specifications')
+			txns = frappe.db.sql("select name, account, \
 				(sum(debit)-sum(credit)) as `amount`, against_voucher,\
 				against_voucher_type from `tabGL Entry` where \
 				against_voucher_type IS NOT NULL group by \
 				against_voucher", as_dict=1)
+			for txn in txns:
+				if txn.amount == 0:
+					continue
+				doc = frappe.get_value(txn.against_voucher_type,
+										txn.against_voucher, '*')
+				doc.doctype = txn.against_voucher_type
+				doc.voucher_search_key = vss.get_search_key(doc)
+				self._open_txns.append(doc)
 		return self._open_txns
 
 	@property
@@ -295,21 +305,12 @@ class BankStatement(Document):
 
 	def clear_voucher(self, row, data):
 		data['clearing_jv'] = None
-		return
-		vss = frappe.get_doc('Voucher Search Specifications');
-		for itm in self.open_txns:
-			if itm.amount == 0:
-				continue
-			dt,dn = itm.against_voucher_type, itm.against_voucher
-			doc = frappe.get_value(dt, dn, '*')
-			doc.doctype = dt
-			key = vss.get_search_key(doc)
-			if not key:
-				continue
-			match = search_text(key, row.transaction_description, 26)
-			if match:
-				found += 1
-				self.make_posting(row, doc, data)
+		match = next((x for x in self.open_txns if \
+					  x.voucher_search_key in \
+					  row.transaction_description), None)
+		if match:
+			# clear document outstanding
+			pass
 
 	def get_posting_data(self, statement_item, data):
 		done = []
