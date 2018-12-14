@@ -135,7 +135,7 @@ render_indicators = function(){
 	$.each(rows, function(i,row){
 		let col = row.columns.status.find('.static-area.ellipsis');
 		col.removeClass('indicator orange green red');
-		if (row.doc.status == 'Pending'){
+		if (['Pending','To Clear'].indexOf(row.doc.status) != -1){
 			col.addClass('indicator orange');
 		} else if (row.doc.status == 'Completed'){
 			col.addClass('indicator green');

@@ -173,6 +173,7 @@ class BankStatement(Document):
 		return sta_item
 
 	def fill_table(self):
+		self.check_exisiting_postings()
 		if not self.file:
 			return
 		
@@ -198,7 +199,7 @@ class BankStatement(Document):
 			# create bank_statement_item table entries
 			self.append('bank_statement_items', sta)
 		
-		#self.save()
+		self.save()
 
 	def eval_transformation(self, eval_code, source_abbr, eval_data):
 		if not eval_code:
@@ -239,7 +240,14 @@ class BankStatement(Document):
 		}
 		return ret_dict
 
+	def check_exisiting_postings(self):
+		if frappe.db.sql("select name from `tabJournal Entry` \
+				where cheque_no='%s' limit 1"%self.name):
+			frappe.throw('Postings already exist for Bank Statement: %s\
+				<br>View Postings: %s'%(self.name,self.postings_link))
+
 	def process_statement(self):
+		self.check_exisiting_postings()
 		found = 0
 		
 		for idx,row in enumerate(self.bank_statement_items):
@@ -260,8 +268,9 @@ class BankStatement(Document):
 			if data['clearing_jv']:
 				data['row']['status'] = 'Completed'
 			row.update(data['row'])
-	
-		frappe.msgprint('Number of rows processed: %s'%found,
+
+		frappe.msgprint('Number of rows processed: %s <br>\
+						View postings: %s'%(found,self.postings_link),
 						indicator='red')
 		
 		self.save()
@@ -275,6 +284,14 @@ class BankStatement(Document):
 				against_voucher_type IS NOT NULL group by \
 				against_voucher", as_dict=1)
 		return self._open_txns
+
+	@property
+	def postings_link(self):
+		return """<a onclick='
+			frappe.route_options = {"cheque_no": "%s"};
+			frappe.set_route("List", "Journal Entry");'
+			target='_self'>Journal Entry</a>"""%self.name
+	
 
 	def clear_voucher(self, row, data):
 		data['clearing_jv'] = None
@@ -296,12 +313,12 @@ class BankStatement(Document):
 
 	def get_posting_data(self, statement_item, data):
 		done = []
-		gl_entry = None
+		data['has_clearing'] = False
 		txn_type = frappe.get_doc('Bank Transaction Type',
 						statement_item.transaction_type)
 		for row in txn_type.journal_template:
 			if row.clear_third_party_item:
-				data['row']['has_clearing'] = True
+				data['has_clearing'] = True
 			if row.dr_or_cr in done:
 				continue
 			if row.dr_or_cr == 'DR':
@@ -318,13 +335,13 @@ class BankStatement(Document):
 		journal_entry.company = frappe.get_value('Bank',self.bank,'company')
 		# credit
 		journal_entry.append('accounts',{
-			'account':data['jl_credit_account'],
+			'account':data['row']['jl_credit_account'],
 			'credit_in_account_currency':data['amount'],
 			'debit_in_account_currency': 0.0,
 		})
 		# debit
 		journal_entry.append('accounts',{
-			'account':data['jl_debit_account'],
+			'account':data['row']['jl_debit_account'],
 			'debit_in_account_currency': data['amount'],
 			'credit_in_account_currency': 0.0,
 		})
