@@ -280,6 +280,7 @@ class BankStatement(Document):
 		if not self.get('_open_txns'):
 			self._open_txns = []
 			vss = frappe.get_doc('Voucher Search Specifications')
+			vss_vouchers = vss.get_voucher_fields()
 			txns = frappe.db.sql("select name, account, \
 				(sum(debit)-sum(credit)) as `amount`, against_voucher,\
 				against_voucher_type from `tabGL Entry` where \
@@ -288,11 +289,12 @@ class BankStatement(Document):
 			for txn in txns:
 				if txn.amount == 0:
 					continue
-				doc = frappe.get_value(txn.against_voucher_type,
-										txn.against_voucher, '*')
-				doc.doctype = txn.against_voucher_type
-				doc.voucher_search_key = vss.get_search_key(doc)
-				self._open_txns.append(doc)
+				if txn.against_voucher_type not in vss_vouchers:
+					continue
+				dt,dn = txn.against_voucher_type,txn.against_voucher
+				doc = frappe.get_value(dt,dn,vss_vouchers[dt], as_dict=1)
+				txn.voucher_search_key = vss.get_search_key(doc, dt)
+				self._open_txns.append(txn)
 		return self._open_txns
 
 	@property

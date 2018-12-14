@@ -74,10 +74,10 @@ class VoucherSearchSpecifications(Document):
 		except Exception as e:
 			frappe.throw(_("Error in formula or condition: {0}".format(e)))
 
-	def get_search_key(self, doc):
+	def get_search_key(self, doc, doctype=None):
 		"""returns a key as specified in the search key spec"""
 		vals = []
-		row = self.get_spec_row('voucher_type', doc.doctype)
+		row = self.get_spec_row('voucher_type', doctype or doc.doctype)
 		if not row:
 			return
 		for i in range(1, 11): #for fields field_1 to field_10
@@ -94,3 +94,15 @@ class VoucherSearchSpecifications(Document):
 				if val != None:
 					vals.append(val)
 		return (row.separator or '-').join(map(str, vals))
+
+	def get_voucher_fields(self):
+		v_fields = {}
+		for row in self.voucher_search_keys:
+			fields = []
+			for i in xrange(1,11):
+				field = row.get('field_%s'%i)
+				if field:
+					fields.append(field)
+			if fields:
+				v_fields[row.voucher_type] = fields
+		return v_fields
