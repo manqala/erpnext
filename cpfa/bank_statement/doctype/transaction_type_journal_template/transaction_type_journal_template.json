@@ -9,7 +9,7 @@
  "docstatus": 0, 
  "doctype": "DocType", 
  "document_type": "", 
- "editable_grid": 0, 
+ "editable_grid": 1, 
  "engine": "InnoDB", 
  "fields": [
   {
@@ -267,7 +267,7 @@
  "issingle": 0, 
  "istable": 1, 
  "max_attachments": 0, 
- "modified": "2018-12-05 21:52:45.947919", 
+ "modified": "2018-12-12 12:11:54.065454", 
  "modified_by": "Administrator", 
  "module": "Bank Statement", 
  "name": "Transaction Type Journal Template", 

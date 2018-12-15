@@ -7,14 +7,22 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint
+from datetime import datetime
+
 
 class VoucherSearchSpecifications(Document):
 	def __init__(self, *args, **kwargs):
 		super(VoucherSearchSpecifications, self).__init__(*args, **kwargs)
 		self.flags.ignore_links = True
 
+	def get_spec_row(self, key, val):
+		return next((r for r in self.voucher_search_keys if \
+					 r.get(key)==val),None)
+
 	def transform_fields(self, dn, idx=None):
-		row = [r for r in self.voucher_search_keys if r.name==dn][0]
+		row = self.get_spec_row('name', dn)
+		if not row:
+			return
 		duplicate = False
 		res = []
 		for i in range(1, 11):
@@ -35,17 +43,26 @@ class VoucherSearchSpecifications(Document):
 				else:
 					res.append(field_val)
 		if not duplicate:
-			return (row.separator or '-').join(res)
+			return (row.separator or '-').join(map(str, res))
 		return row.search_key_specification
 
 	def transform_field(self, field, dn):
 		eval_rule_field = field + '_transformation_rule'
-		row = [r for r in self.voucher_search_keys if r.name==dn][0]
+		row = self.get_spec_row('name', dn)
+		if not row:
+			return
+		field_val = row.get(field, '')
 		eval_code = row.get(eval_rule_field, '')
+		docfield = frappe.get_meta(row.voucher_type).get_field(field_val)
+		if docfield:
+			if docfield.fieldtype == 'Date':
+				field_val = datetime.now().date()
+			elif docfield.fieldtype == 'Time':
+				field_val = datetime.now().time()
 		if not eval_code:
 			return
 
-		eval_data = {field: row.get(field, '')}
+		eval_data = {field: field_val}
 		
 		try:
 			return frappe.safe_eval(eval_code, None, eval_data)
@@ -57,11 +74,12 @@ class VoucherSearchSpecifications(Document):
 		except Exception as e:
 			frappe.throw(_("Error in formula or condition: {0}".format(e)))
 
-	def get_search_key(self, doc):
+	def get_search_key(self, doc, doctype=None):
 		"""returns a key as specified in the search key spec"""
 		vals = []
-		dn = doc.doctype
-		row = [r for r in self.voucher_search_keys if r.voucher_type==dn][0]
+		row = self.get_spec_row('voucher_type', doctype or doc.doctype)
+		if not row:
+			return
 		for i in range(1, 11): #for fields field_1 to field_10
 			field = 'field_%s'%i
 			eval_rule_field = field + '_transformation_rule'
@@ -69,10 +87,22 @@ class VoucherSearchSpecifications(Document):
 			eval_rule = row.get(eval_rule_field, '')
 			if field_name:
 				val = doc.get(field_name)
-				if eval_rule:
+				if eval_rule and val != None:
 					eval_rule = eval_rule.replace(field, field_name)
 					eval_data = {field_name: val}
 					val = frappe.safe_eval(eval_rule, None, eval_data)
 				if val != None:
 					vals.append(val)
-		return (row.separator or '-').join(vals)
+		return (row.separator or '-').join(map(str, vals))
+
+	def get_voucher_fields(self):
+		v_fields = {}
+		for row in self.voucher_search_keys:
+			fields = []
+			for i in xrange(1,11):
+				field = row.get('field_%s'%i)
+				if field:
+					fields.append(field)
+			if fields:
+				v_fields[row.voucher_type] = fields
+		return v_fields

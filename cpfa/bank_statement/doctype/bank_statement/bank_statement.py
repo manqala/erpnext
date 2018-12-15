@@ -4,7 +4,7 @@
 
 from __future__ import unicode_literals
 import frappe, csv, datetime, os, re
-from frappe import _
+from frappe import _, _dict
 from frappe.utils import flt, date_diff, getdate, dateutils, get_datetime
 from frappe.model.document import Document
 from frappe.utils.file_manager import get_file_path, get_uploaded_content
@@ -173,6 +173,7 @@ class BankStatement(Document):
 		return sta_item
 
 	def fill_table(self):
+		self.check_exisiting_postings()
 		if not self.file:
 			return
 		
@@ -239,32 +240,124 @@ class BankStatement(Document):
 		}
 		return ret_dict
 
+	def check_exisiting_postings(self):
+		if frappe.db.sql("select name from `tabJournal Entry` \
+				where cheque_no='%s' limit 1"%self.name):
+			frappe.throw('Postings already exist for Bank Statement: %s\
+				<br>View Postings: %s'%(self.name,self.postings_link))
+
 	def process_statement(self):
-		allocated_entries = []
-		processed_rows = []
-		vss = frappe.get_doc('Voucher Search Specifications');
-		open_txns = frappe.db.sql("select name, account, \
-			(sum(debit)-sum(credit)) as `amount`, against_voucher, \
-			against_voucher_type from `tabGL Entry` where \
-			against_voucher_type IS NOT NULL group by against_voucher", as_dict=1)
+		self.check_exisiting_postings()
+		found = 0
 		
-		for bank_statement_item in self.bank_statement_items:
-			if not bank_statement_item.transaction_type:
+		for idx,row in enumerate(self.bank_statement_items):
+			if not row.transaction_type:
+				row.set('status', 'Not Started')
 				continue
-			for itm in open_txns:
-				dt,dn = itm.against_voucher_type, itm.against_voucher
-				doc = frappe.get_value(dt, dn, '*')
-				doc.doctype = dt
-				key = vss.get_search_key(doc)
-				match = search_text(key, bank_statement_item.transaction_description, 26)
-				if match:
-					bank_statement_item.set('status', key)
-					processed_rows.append(doc)
-		if processed_rows:
-			frappe.msgprint('The following rows were processed: <br> row {}'.format(', row '.join(processed_rows)))
-		else:
-			frappe.msgprint('0 rows processed', indicator='red')
-		#self.save()
+			data = {'row':_dict({'status':'Pending'}),
+					'amount':row.credit_amount or row.debit_amount}
+			self.get_posting_data(row, data)
+			self.make_jv(data)
+			if data['posting_jv']:
+				found += 1
+				data['row']['status'] = 'Completed'
+			if not data['has_clearing']:
+				continue
+			data['row']['status'] = 'To Clear'
+			self.clear_voucher(row, data)
+			if data['clearing_jv']:
+				data['row']['status'] = 'Completed'
+			row.update(data['row'])
+
+		frappe.msgprint('Number of rows processed: %s <br>\
+						View postings: %s'%(found,self.postings_link),
+						indicator='red')
+		
+		self.save()
+
+	@property
+	def open_txns(self):
+		if not self.get('_open_txns'):
+			self._open_txns = []
+			vss = frappe.get_doc('Voucher Search Specifications')
+			vss_vouchers = vss.get_voucher_fields()
+			txns = frappe.db.sql("select name, account, \
+				(sum(debit)-sum(credit)) as `amount`, against_voucher,\
+				against_voucher_type from `tabGL Entry` where \
+				against_voucher_type IS NOT NULL group by \
+				against_voucher", as_dict=1)
+			for txn in txns:
+				if txn.amount == 0:
+					continue
+				if txn.against_voucher_type not in vss_vouchers:
+					continue
+				dt,dn = txn.against_voucher_type,txn.against_voucher
+				doc = frappe.get_value(dt,dn,vss_vouchers[dt], as_dict=1)
+				txn.voucher_search_key = vss.get_search_key(doc, dt)
+				self._open_txns.append(txn)
+		return self._open_txns
+
+	@property
+	def postings_link(self):
+		return """<a onclick='
+			frappe.route_options = {"cheque_no": "%s"};
+			frappe.set_route("List", "Journal Entry");'
+			target='_self'>Journal Entry</a>"""%self.name
+	
+
+	def clear_voucher(self, row, data):
+		data['clearing_jv'] = None
+		match = next((x for x in self.open_txns if \
+					  x.voucher_search_key in \
+					  row.transaction_description), None)
+		if match:
+			# clear document outstanding
+			pass
+
+	def get_posting_data(self, statement_item, data):
+		done = []
+		data['has_clearing'] = False
+		txn_type = frappe.get_doc('Bank Transaction Type',
+						statement_item.transaction_type)
+		for row in txn_type.journal_template:
+			if row.clear_third_party_item:
+				data['has_clearing'] = True
+			if row.dr_or_cr in done:
+				continue
+			if row.dr_or_cr == 'DR':
+				data['row']['jl_debit_account'] = row.account
+			elif row.dr_or_cr == 'CR':
+				data['row']['jl_credit_account'] = row.account
+			done.append(row.dr_or_cr)
+
+	def make_jv(self, data):
+		journal_entry = frappe.new_doc('Journal Entry')
+		journal_entry.posting_date = frappe.utils.getdate()
+		journal_entry.cheque_no = self.name
+		journal_entry.cheque_date = frappe.utils.getdate()
+		journal_entry.company = frappe.get_value('Bank',self.bank,'company')
+		# credit
+		journal_entry.append('accounts',{
+			'account':data['row']['jl_credit_account'],
+			'credit_in_account_currency':data['amount'],
+			'debit_in_account_currency': 0.0,
+		})
+		# debit
+		journal_entry.append('accounts',{
+			'account':data['row']['jl_debit_account'],
+			'debit_in_account_currency': data['amount'],
+			'credit_in_account_currency': 0.0,
+		})
+		
+		journal_entry.save(ignore_permissions=True)
+		journal_entry.submit()
+		data['posting_jv'] = journal_entry.name
+
+	def get_gl_entries(self, voucher):
+		return frappe.db.sql("SELECT account,credit,debit FROM \
+			`tabGL Entry` WHERE against_voucher = '{}' AND \
+			against_voucher_type = '{}'".format(voucher.name,
+				voucher.doctype), as_dict=1)
 
 def get_source_abbr(source_field, bank_statement_mapping_items):
 	for row in bank_statement_mapping_items:
@@ -327,20 +420,6 @@ def get_txn_type(self, idx, itm):
 		get_ret_msg(ret_list)
 		return
 	return match_type[0].name
-
-def make_query(pairs):
-	if not isinstance(pairs, list):
-		return ''
-	query = ''
-	for pair in pairs:
-		if not isinstance(pair, dict):
-			continue
-		for key in pair:
-			if isinstance(pair[key], basestring):
-				query += " and {0} = '{1}'".format(key, pair[key])
-				continue
-			query += " and {0} = {1}".format(key, pair[key])
-	return query
 
 def get_open_third_party_documents_using_search_fields(search_fields, txn,
 		allocated_entries=[]):
@@ -426,22 +505,6 @@ def search_text(text, base_text, flags=0):
 	if match:
 		return found
 
-def print_variables(var_list, local={}):
-	'''Print list of variable to terminal'''
-	if not isinstance(var_list, list):
-		return
-	if not isinstance(local, dict):
-		local = local()
-	
-	for var in var_list:
-		name = var
-		var = local.get(name)
-		if '.' in name:
-			var = local.get(name.split('.')[0])
-			for atr in name.split('.')[1:]:
-				var = getattr(var, atr, None)
-				if '()' in atr: var = getattr(var, atr, None)()
-			name = name.split('.')[0]
 
 def is_float(value):
 	try:

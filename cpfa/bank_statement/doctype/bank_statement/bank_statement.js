@@ -4,17 +4,19 @@
 var acc_currency_map = {},
 	statement_date_overlap,
 	account_types,
+	render_indicators,
 	statement_first_validate = true
 
 frappe.ui.form.on('Bank Statement', {
 	refresh: (frm)=>{
-		var doc = frm.doc;
+		render_indicators();
 		frm.add_custom_button(__("Process Statement"), function() {
 			frappe.call({
 				method: 'process_statement',
 				doc: frm.doc,
 				freeze: true,
 				callback: function(r){
+					render_indicators();
 					frm.refresh_field('bank_statement_items');
 				}
 			})
@@ -29,7 +31,7 @@ frappe.ui.form.on('Bank Statement', {
 						$('.msgprint hr').attr('style', 'margin: 3px');
 					}
 					setTimeout(set_margin, 300);
-					frm.refresh_field('bank_statement_items');
+					frm.refresh();
 				}
 			})
 		});
@@ -80,7 +82,6 @@ frappe.ui.form.on('Bank Statement', {
 		}
 	},
 	set_account_type_options: function(doc, cdt, cdn) {
-        console.log('rendered')
 		var df1 = frappe.meta.get_docfield("Bank Statement Item","jl_debit_account_type", cur_frm.doc.name);
 		df1.options = account_types
 		var df2 = frappe.meta.get_docfield("Bank Statement Item","jl_credit_account_type", cur_frm.doc.name);
@@ -125,3 +126,20 @@ frappe.ui.form.on('Bank Statement Item', 'post_manually', (frm, dt, dn)=>{
 	frappe.show_alert('Post manually')
 	return false;
 })
+
+render_indicators = function(){
+	if (!cur_frm.doc.bank_statement_items) return;
+
+	var rows = cur_frm.fields_dict['bank_statement_items'].grid.grid_rows;
+	$.each(rows, function(i,row){
+		let col = row.columns.status.find('.static-area.ellipsis');
+		col.removeClass('indicator orange green red');
+		if (['Pending','To Clear'].indexOf(row.doc.status) != -1){
+			col.addClass('indicator orange');
+		} else if (row.doc.status == 'Completed'){
+			col.addClass('indicator green');
+		} else if (row.doc.status == 'Not Started'){
+			col.addClass('indicator red');
+		}
+	})
+}
