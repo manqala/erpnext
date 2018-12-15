@@ -37,7 +37,6 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	}
 	},
 	before_save:function(frm){
-	  console.log("Calculating");
 	    var doc_ser_det=cur_frm.doc.service_details
 	    var service_details_arr=Object.values(doc_ser_det)
 	    var sum=0;
@@ -54,26 +53,24 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 	            "name": cur_frm.doc.vehicle,
 	            "fieldname": {
 	              "date_of_last_service":cur_frm.doc.service_date
-	              //console.log(cur_frm.doc.service_date);
-
 	            }
 	        }
 	    });
 	  },
 		refresh:function(frm){
 			if(frm.doc.__islocal){
-				var today = new Date();
-				var dd = today.getDate();
-				var mm = today.getMonth()+1; //January is 0!
-				var yyyy = today.getFullYear();
+				var today_ = new Date();
+				var dd = today_.getDate();
+				var mm = today_.getMonth()+1; //January is 0!
+				var yyyy = today_.getFullYear();
 				if(dd<10) {
 						dd = '0'+dd
 				}
 				if(mm<10) {
 						mm = '0'+mm
 				}
-				today = yyyy + '-' + mm + '-' + dd;
-				frm.set_value("service_date",today)
+			  var today = yyyy + '-' + mm + '-' + dd;
+				cur_frm.set_value("service_date",today)
 			}
 			else{
 				cur_frm.add_custom_button(("Return Vehicle"),function(ev){
@@ -125,17 +122,27 @@ frappe.ui.form.on("Vehicle Servicing Log",{
 		mileage:function(frm){
 			var vehicle =frm.doc.vehicle
 			cur_val=frm.doc.mileage
+			if(vehicle==undefined){
+				cur_frm.doc.mileage=""
+				cur_frm.refresh_field("mileage")
+				frappe.throw("No vehicle selected")
+			}
+			if(cur_val==undefined){
+				;
+			}
+			else{
 			frappe.call({
 				method:"cpfa.utils.misc_methods.getMileage",
 				args:{vehicle:vehicle},
 				callback:function(r){
-				if(cur_val<r.message){
+				if(cur_val<r.message|| cur_val==r.message){
 					frm.doc.mileage=""
 					cur_frm.refresh_field("mileage")
-					frappe.throw("Inputted value is less than current mileage value,Enter a valid value for mileage.")
+					frappe.throw("Mileage value cannot be less than or equal to current mileage ,Enter a valid value.")
 				}
 				}
 			})
+		}
 		}
 })
 

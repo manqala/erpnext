@@ -23,7 +23,7 @@ class VehicleServicingLog(Document):
 			vehicle.odometer_value=self.mileage
 			vehicle.save()
 		else:
-			pass
+			frappe.throw("Vehicle mileage cannot be equal to 0")
 		if self.service_status=="Service In Progress":
 			vehicle.status="Undergoing Maintenance"
 			vehicle.save()

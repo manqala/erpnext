@@ -67,13 +67,14 @@ doc=frappe.new_doc("Vehicle Trip Log")
 },("Create"))
 cur_frm.add_custom_button(("Vehicle Request"),function(ev){
 var vehicle_type=frm.doc.vehicle_type
+var vehicle_name=frm.doc.name
 if(vehicle_type==undefined){
   ;
 }
 else{
 frappe.call({
   method:"cpfa.utils.misc_methods.getRequest",
-  args:{vehicle_type:vehicle_type},
+  args:{vehicle_type:vehicle_type,vehicle_name:cur_frm.doc.name},
   callback:function(r){
    var doc=frappe.model.sync(r.message)
    frappe.set_route("Form","Vehicle Request",r.message.name)
@@ -118,7 +119,6 @@ var model=frm.doc.vehicle_model
      method:"cpfa.utils.misc_methods.getServiceTemp",
      args:{model:model},
      callback:function(response){
-       console.log(response.message);
        cur_frm.clear_table("service_details")
  					for(var o=0;o<response.message.length;o++){
  						frm.add_child("service_details")
@@ -129,7 +129,7 @@ var model=frm.doc.vehicle_model
             frm.doc.service_details[o].frequency=response.message[o].frequency
  					}
            	frm.refresh_field("service_details")
-          console.log(response.message.length);
+
      }
    })
   }

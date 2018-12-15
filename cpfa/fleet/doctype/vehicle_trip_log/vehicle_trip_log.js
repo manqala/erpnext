@@ -21,21 +21,38 @@ refresh:function(frm){
 			}
 		}
 	})
+	if(cur_frm.doc.__islocal){
+		cur_frm.toggle_display("refueling_detail",false)
+	}
+	else {
+		;
+	}
+	// cur_frm.refresh_field("refueling_detail")
 },
 mileage:function(frm){
 	var vehicle =frm.doc.vehicle
 	cur_val=frm.doc.mileage
+	if(vehicle==undefined){
+		cur_frm.doc.mileage=""
+		cur_frm.refresh_field("mileage")
+		frappe.throw("No vehicle request selected")
+	}
+	if(cur_val==undefined){
+		;
+	}
+	else{
 	frappe.call({
 		method:"cpfa.utils.misc_methods.getMileage",
 		args:{vehicle:vehicle},
 		callback:function(r){
-		if(cur_val<r.message){
+		if(cur_val<r.message|| cur_val==r.message){
 			frm.doc.mileage=""
 			cur_frm.refresh_field("mileage")
-			frappe.throw("Inputted value is less than current mileage value,Enter a valid value for mileage.")
+			frappe.throw("Mileage value is less than  or equal to current mileage value,Enter a valid value for mileage.")
 		}
 		}
 	})
+}
 },
 incidents:function(frm){
 	if(cur_frm.doc.incidents==0)
@@ -108,6 +125,16 @@ trip_ended:function(frm){
 		cur_frm.doc.trip_ended=""
 		cur_frm.refresh_field("trip_ended")
 		frappe.throw("Date of trip ending cannot be before date trip started")
+	}
+},
+trip_type:function(frm){
+	if(frm.doc.trip_type=="Trip"){
+		cur_frm.toggle_display("refueling_detail",false)
+			//cur_frm.refresh_field("refueling_detail")
+	}
+	else{
+		cur_frm.toggle_display("refueling_detail",true)
+			//cur_frm.refresh_field("refueling_detail")
 	}
 }
 });

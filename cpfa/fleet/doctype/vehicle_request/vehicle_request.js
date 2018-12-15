@@ -49,6 +49,7 @@
        },
        callback:function(r){
          cur_frm.set_value("employee_name",r.message)
+         cur_frm.refresh_field("employee_name")
        }
      })
    }

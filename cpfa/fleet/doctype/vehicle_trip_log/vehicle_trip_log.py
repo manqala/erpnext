@@ -15,13 +15,21 @@ class VehicleTripLog(Document):
 
 	def validate(self):
 		vehicle=frappe.get_doc("Vehicle",self.vehicle)
-		vehicle.odometer_value=self.mileage
+		if self.mileage!=0:
+			vehicle.odometer_value=self.mileage
+			vehicle.save()
+		else:
+			frappe.throw("Vehicle mileage cannot be equal to 0")
 		if self.trip_type=="Trip":
 			vehicle.status="Available"
 			vehicle_request=frappe.get_doc("Vehicle Request", self.vehicle_request)
 			vehicle_request.status="Returned"
 			vehicle_request.save()
-		vehicle.save()
+		elif self.trip_type=="Refueling":
+			vehicle.status="Available"
+			vehicle_request=frappe.get_doc("Vehicle Request", self.vehicle_request)
+			vehicle_request.status="Returned"
+			vehicle.save()
 		return
 
 @frappe.whitelist()
