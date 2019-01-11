@@ -31,9 +31,12 @@ def docfield_query(doctype, txt, searchfield, start, page_len, filters):
 # searches for transaction doctypes
 def voucher_type_query(doctype, txt, searchfield, start, page_len, filters):
 	conditions = []
-	return frappe.db.sql("""select distinct df.parent, dt.module 
-		from tabDocField df join tabDocType dt on dt.name = df.parent
-		where df.fieldname in ('grand_total','net_total') and dt.istable = 0
+	query = """select distinct df.parent, dt.module 
+		from tabDocField df join tabDocField df1 join tabDocField df2 join tabDocType dt
+		on dt.name = df.parent and df.parent = df1.parent and df1.parent = df2.parent
+		where (df.fieldname in ('grand_total','net_total', 'rounded_total')
+			and dt.istable = 0 and dt.issingle = 0
+			or (df1.fieldname = 'posting_date' and df2.fieldname = 'mode_of_payment'))
 			and (dt.{key} like %(txt)s
 				or dt.module like %(txt)s)
 			{fcond} {mcond}
@@ -46,7 +49,9 @@ def voucher_type_query(doctype, txt, searchfield, start, page_len, filters):
 			'key': searchfield,
 			'fcond': get_filters_cond(doctype, filters, conditions),
 			'mcond': get_match_cond(doctype)
-		}), {
+		})
+
+	return frappe.db.sql(query, {
 			'txt': "%%%s%%" % txt,
 			'_txt': txt.replace("%", ""),
 			'start': start,
