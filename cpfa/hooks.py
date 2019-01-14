@@ -33,6 +33,7 @@ app_include_js = "assets/js/cpfa.js"
 doctype_js = {
 	"Salary Slip" : "public/js/custom_hr.js",
 	"Vehicle" : "public/js/filter_model.js",
+	"Workflow": "public/js/workflow.js"
 }
 
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}

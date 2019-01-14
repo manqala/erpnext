@@ -57,3 +57,28 @@ def voucher_type_query(doctype, txt, searchfield, start, page_len, filters):
 			'start': start,
 			'page_len': page_len
 		})
+
+def user_query(doctype, txt, searchfield, start, page_len, filters):
+	filter_list = []
+
+	if isinstance(filters, dict):
+		for key, val in filters.items():
+			if isinstance(val, (list, tuple)):
+				filter_list.append([doctype, key, val[0], val[1]])
+			else:
+				filter_list.append([doctype, key, "=", val])
+	elif isinstance(filters, list):
+		filter_list.extend(filters)
+
+	if searchfield and txt:
+		filter_list.append([doctype, searchfield, "like", "%%%s%%" % txt])
+
+	return frappe.desk.reportview.execute("User", filters = filter_list,
+		fields = ["name", "full_name"],
+		limit_start=start, limit_page_length=page_len, as_list=True)
+
+@frappe.whitelist()
+def get_docfields(doctype):
+	meta = frappe.get_meta(doctype)
+	return ['{} ({})'.format(i.fieldname, i.label) for i in \
+			meta.fields if i.options in ['Email', 'User']]
