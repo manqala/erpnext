@@ -33,5 +33,14 @@ def get_data():
 
             ]
         },
+        {
+            "label":_("Expense Claims"),
+            "items":[
+                {
+                "type":"doctype",
+                "name":"Overtime Application"
 
+                },
+            ],
+        },
     ]

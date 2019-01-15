@@ -7,7 +7,11 @@ frappe.ui.form.on('Salary Slip', {
 		var employee = frm.doc.employee_name
 		var cal_start=frm.doc.start_date
 		var cal_end=frm.doc.end_date
+		if(employee==undefined || cal_end==undefined || cal_start==undefined){
+			;
+		}
 		/*A function that calculates the daily salary of employee and  returns the amount payable after deductions*/
+		else{
 		frappe.call({
 				args:{employee: employee,cal_end:cal_end,cal_start:cal_start},
 				method: 'cpfa.utils.misc_methods.get_days_present',
@@ -23,6 +27,6 @@ frappe.ui.form.on('Salary Slip', {
 				cur_frm.set_value("salary_for_month",payment)
 				//console.log("number of days",response.message[1]);
 			}
-		})
+		})}
 	}
 })
