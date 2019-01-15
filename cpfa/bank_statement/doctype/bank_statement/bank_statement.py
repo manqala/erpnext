@@ -31,6 +31,29 @@ class BankStatement(Document):
 		self.validate_dates()
 		if not self.previous_bank_statement:
 			self.fill_previous_statement()
+		self.prevent_deletion_if_posted()
+
+	def prevent_deletion_if_posted(self):
+		if not self.is_new():
+			if len(self.bank_statement_items) != \
+					len(frappe.get_doc('Bank Statement', self.name).bank_statement_items):
+				self.check_exisiting_postings()
+
+	def on_trash(self):
+		self.check_exisiting_postings()
+
+	def delete_postings(self):
+		postings = frappe.get_all('Journal Entry',{'cheque_no':self.name})
+		
+		for posting in postings:
+			jv = frappe.get_doc('Journal Entry', posting)
+			jv.cancel()
+			jv.delete()
+
+		for item in self.bank_statement_items:
+			item.set('status', 'Not Started')
+
+		self.save()
 
 	def validate_dates(self):
 		previous_sta = frappe.get_all("Bank Statement",
@@ -248,7 +271,7 @@ class BankStatement(Document):
 
 	def process_statement(self):
 		self.check_exisiting_postings()
-		found = 0
+		posted = 0
 		
 		for idx,row in enumerate(self.bank_statement_items):
 			if not row.transaction_type:
@@ -259,18 +282,17 @@ class BankStatement(Document):
 			self.get_posting_data(row, data)
 			self.make_jv(data)
 			if data['posting_jv']:
-				found += 1
+				posted += 1
 				data['row']['status'] = 'Completed'
-			if not data['has_clearing']:
-				continue
-			data['row']['status'] = 'To Clear'
-			self.clear_voucher(row, data)
-			if data['clearing_jv']:
-				data['row']['status'] = 'Completed'
+			if data['has_clearing']:
+				data['row']['status'] = 'To Clear'
+				self.clear_voucher(row, data)
+				if data['clearing_jv']:
+					data['row']['status'] = 'Completed'
 			row.update(data['row'])
 
 		frappe.msgprint('Number of rows processed: %s <br>\
-						View postings: %s'%(found,self.postings_link),
+						View postings: %s'%(posted,self.postings_link),
 						indicator='red')
 		
 		self.save()
@@ -311,6 +333,10 @@ class BankStatement(Document):
 					  x.voucher_search_key in \
 					  row.transaction_description), None)
 		if match:
+			field = 'gl_debit_account' if match.amount > 0 else \
+					'gl_credit_account'
+			data['row'][field] = match.account
+			print match
 			# clear document outstanding
 			pass
 

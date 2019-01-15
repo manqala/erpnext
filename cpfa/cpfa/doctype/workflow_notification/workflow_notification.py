@@ -189,9 +189,13 @@ def get_users_next_action_data(transitions, doc):
 
 	for transition in transitions:
 		users = get_users_with_role(transition.allowed)
+		specific_user = get_specific_user(transition, doc)
 		filtered_users = filter_allowed_users(users, doc, transition)
 		filtered_users = filter_available_actions(filtered_users, doc, transition)
+		if specific_user:
+			filtered_users = [specific_user]
 		for user in filtered_users:
+			
 			if not user_data_map.get(user):
 				user_data_map[user] = {
 					'possible_actions': [],
@@ -202,6 +206,7 @@ def get_users_next_action_data(transitions, doc):
 				'action_name': transition.action,
 				'action_link': get_workflow_action_url(transition.action, doc, user)
 			})
+
 	return user_data_map
 
 
@@ -283,7 +288,7 @@ def clear_workflow_actions(doctype, name):
 
 	frappe.db.sql('''delete from `tabWorkflow Notification`
 		where reference_doctype=%s and reference_name=%s''',
-		(doctype, name))
+		(doctype, name), auto_commit=1)
 
 def get_doc_workflow_state(doc):
 	workflow_name = get_workflow_name(doc.get('doctype'))
@@ -338,3 +343,16 @@ def get_email_template(doc):
 
 	if not template_name: return
 	return frappe.get_doc('Email Template', template_name)
+
+def get_specific_user(transition, doc):
+	workflow = get_workflow_name(doc.get('doctype'))
+	transition = frappe.get_doc('Workflow Transition', {
+				'parent': workflow, 'allowed': transition.allowed,
+				'action': transition.action,'state': transition.state})
+	
+	if transition.allowed_user:
+		return transition.allowed_user
+	
+	if transition.allowed_user_field:
+		field = transition.allowed_user_field.split(' ', 1)[0]
+		return doc.get(field)

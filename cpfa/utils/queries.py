@@ -31,9 +31,12 @@ def docfield_query(doctype, txt, searchfield, start, page_len, filters):
 # searches for transaction doctypes
 def voucher_type_query(doctype, txt, searchfield, start, page_len, filters):
 	conditions = []
-	return frappe.db.sql("""select distinct df.parent, dt.module 
-		from tabDocField df join tabDocType dt on dt.name = df.parent
-		where df.fieldname in ('grand_total','net_total') and dt.istable = 0
+	query = """select distinct df.parent, dt.module 
+		from tabDocField df join tabDocField df1 join tabDocField df2 join tabDocType dt
+		on dt.name = df.parent and df.parent = df1.parent and df1.parent = df2.parent
+		where (df.fieldname in ('grand_total','net_total', 'rounded_total')
+			and dt.istable = 0 and dt.issingle = 0
+			or (df1.fieldname = 'posting_date' and df2.fieldname = 'mode_of_payment'))
 			and (dt.{key} like %(txt)s
 				or dt.module like %(txt)s)
 			{fcond} {mcond}
@@ -46,9 +49,38 @@ def voucher_type_query(doctype, txt, searchfield, start, page_len, filters):
 			'key': searchfield,
 			'fcond': get_filters_cond(doctype, filters, conditions),
 			'mcond': get_match_cond(doctype)
-		}), {
+		})
+
+	return frappe.db.sql(query, {
 			'txt': "%%%s%%" % txt,
 			'_txt': txt.replace("%", ""),
 			'start': start,
 			'page_len': page_len
 		})
+
+def user_query(doctype, txt, searchfield, start, page_len, filters):
+	filter_list = []
+
+	if isinstance(filters, dict):
+		for key, val in filters.items():
+			if isinstance(val, (list, tuple)):
+				filter_list.append([doctype, key, val[0], val[1]])
+			else:
+				filter_list.append([doctype, key, "=", val])
+	elif isinstance(filters, list):
+		filter_list.extend(filters)
+
+	if searchfield and txt:
+		filter_list.append([doctype, searchfield, "like", "%%%s%%" % txt])
+
+	return frappe.desk.reportview.execute("User", filters = filter_list,
+		fields = ["name", "full_name"],
+		limit_start=start, limit_page_length=page_len, as_list=True)
+
+@frappe.whitelist()
+def get_docfields(doctype):
+	meta = frappe.get_meta(doctype)
+	types = ['Small Text', 'Data']
+	return ['{} ({})'.format(i.fieldname, i.label) for i in \
+			meta.fields if i.options in ['Email', 'User'] or \
+			('Email' in str(i.label) and i.fieldtype in types) ]

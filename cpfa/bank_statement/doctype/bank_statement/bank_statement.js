@@ -21,6 +21,7 @@ frappe.ui.form.on('Bank Statement', {
 				}
 			})
 		});
+		
 		frm.add_custom_button(__("Upload Statement"), function() {
 			frappe.call({
 				method: 'fill_table',
@@ -35,6 +36,27 @@ frappe.ui.form.on('Bank Statement', {
 				}
 			})
 		});
+		
+		frm.add_custom_button("Delete Postings", function(){
+			frappe.confirm('Delete Journal Entries?', function(){
+				frappe.call({
+					method: 'delete_postings',
+					doc: frm.doc,
+					freeze: true,
+					callback: function(r){
+						render_indicators();
+						frm.refresh_field('bank_statement_items');
+						frappe.msgprint('Journal Entries Deleted')
+					}
+				})
+			});
+		})
+		
+		var last_btn = frm.page.inner_toolbar[0];
+		if (last_btn){
+			last_btn.lastChild.classList.add('btn-danger');
+		}
+		
 		if (frm.doc.bank){
 			frm.trigger('bank');
 		}
