@@ -50,9 +50,21 @@ def get_transitions(doc, workflow=None, user=None):
 				if not success:
 					continue
 
+			specific_user = check_specific_user(transition, doc)
+			if specific_user and specific_user != frappe.session.user:
+				continue
+			
 			transitions.append(transition.as_dict())
 
 	return transitions
+
+def check_specific_user(transition, doc):
+	if transition.allowed_user:
+		return transition.allowed_user
+	
+	if transition.allowed_user_field:
+		field = transition.allowed_user_field.split(' ', 1)[0]
+		return doc.get(field)
 
 @frappe.whitelist()
 def apply_workflow(doc, action):

@@ -80,5 +80,7 @@ def user_query(doctype, txt, searchfield, start, page_len, filters):
 @frappe.whitelist()
 def get_docfields(doctype):
 	meta = frappe.get_meta(doctype)
+	types = ['Small Text', 'Data']
 	return ['{} ({})'.format(i.fieldname, i.label) for i in \
-			meta.fields if i.options in ['Email', 'User']]
+			meta.fields if i.options in ['Email', 'User'] or \
+			('Email' in str(i.label) and i.fieldtype in types) ]
