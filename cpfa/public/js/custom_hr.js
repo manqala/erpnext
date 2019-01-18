@@ -1,32 +1,43 @@
 
 frappe.ui.form.on('Salary Slip', {
 	refresh: function(frm){
-		console.log('working as expected')
+
+	},
+	toggle_fields: function(frm) {
+		frm.toggle_display(['hourly_wages', 'timesheets'],
+			cint(frm.doc.salary_slip_based_on_timesheet)==1);
+
+		frm.toggle_display(['payment_days', 'total_working_days', 'leave_without_pay'],
+			frm.doc.payroll_frequency!="");
 	},
 	employee: function(frm){
 		var employee = frm.doc.employee_name
-		var cal_start=frm.doc.start_date
-		var cal_end=frm.doc.end_date
-		if(employee==undefined || cal_end==undefined || cal_start==undefined){
+		if(employee==undefined){
 			;
 		}
 		/*A function that calculates the daily salary of employee and  returns the amount payable after deductions*/
 		else{
 		frappe.call({
-				args:{employee: employee,cal_end:cal_end,cal_start:cal_start},
-				method: 'cpfa.utils.misc_methods.get_days_present',
+				args:{employee:frm.doc.employee},
+				method: 'cpfa.utils.misc_methods.get_timesheet',
 				callback: function(response){
-				var annual_sal=response.message[1]
-				var monthly_sal=annual_sal/12
-				var working_days=frm.doc.total_working_days
-				var daily_equivalent=monthly_sal/working_days
-				var attendance_deduc=daily_equivalent*response.message[0]
-				var payment=monthly_sal-attendance_deduc
-				cur_frm.set_value("number_of_days_absent",response.message[0])
-				cur_frm.set_value("annual_salary",response.message[1])
-				cur_frm.set_value("salary_for_month",payment)
-				//console.log("number of days",response.message[1]);
+					total_=0
+					console.log(response.message);
+					cur_frm.clear_table("timesheets")
+ 	 					for(var o=0;o<response.message.length;o++){
+ 	 						frm.add_child("timesheets")
+							frm.doc.timesheets[o].time_sheet=response.message[o].name
+							frm.doc.timesheets[o].working_hours=response.message[o].total_hours
+							total_+=response.message[o].total_hours
+ 	 					//	frm.doc.timesheets[o].=response.message[o].name
+ 	 					}
+						frm.doc.total_working_hours=total_
+						console.log(total_);
+						//frm.toggle_display("timesheets", true)
+						frm.trigger("toggle_fields");
+ 	           	frm.refresh_field("timesheets")
 			}
-		})}
+		})
+	}
 	}
 })

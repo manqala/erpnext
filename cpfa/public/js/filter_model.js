@@ -1,4 +1,4 @@
-frappe.ui.form.on('Vehicle',{
+frappe.ui.form.on("Vehicle",{
   change_vehicle_location:function(frm) {
           // $(frm.fields_dict.vehicle_location.input).on('click', function(e){
             cur_frm.set_df_property("vehicle_location","read_only",false)

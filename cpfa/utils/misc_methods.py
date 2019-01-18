@@ -140,6 +140,15 @@ def getRequest(vehicle_type,vehicle_name):
 	new_request.vehicle_assigned=vehicle_name
 	return(new_request)
 
+@frappe.whitelist()
+def get_timesheet(employee):
+	query1="Select * from `tabTimesheet` where employee='%s' and status='Submitted'" %employee
+	result=frappe.db.sql(query1,as_dict=1)
+	if result:
+		return(result)
+	else:
+		return("Nothing")
+
 def autoname(doc,method):
 	# print '\n\n\nautoname', 'method', '\n\n\n'
 	doc.name = doc.vehicle_make+"_"+doc.vehicle_model+'_'+doc.license_plate
