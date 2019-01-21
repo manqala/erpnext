@@ -7,6 +7,7 @@ frappe.ui.form.on("Salary Slip",{
     var start_date=frm.doc.start_date
     var end_date=frm.doc.end_date
     var twd=frm.doc.total_working_days
+    var cur_form=frm.doc
   frappe.call({
     method:
       "cpfa.utils.salary_slip_methods.comp_calc",
@@ -17,9 +18,11 @@ frappe.ui.form.on("Salary Slip",{
      rate:rate,
      start_date:start_date,
      end_date:end_date,
-     twd:twd
+     twd:twd,
+     cur_form:cur_form
    },
     callback:function(r){
+    //frm.refresh_fields["earnings","deductions"]
     console.log(r.message);
     }
   })
