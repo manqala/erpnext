@@ -39,7 +39,7 @@ frappe.ui.form.on('Overtime Application', {
 					}
 				}
 			)
-
+			;
 	 	}
 	 },
 	date: function(frm){
