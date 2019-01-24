@@ -149,6 +149,10 @@ def get_timesheet(employee):
 	else:
 		return("Nothing")
 
+@frappe.whitelist()
+def get_val(emp):
+	return(frappe.get_doc("Employee",emp).user_id)
+
 def autoname(doc,method):
 	# print '\n\n\nautoname', 'method', '\n\n\n'
 	doc.name = doc.vehicle_make+"_"+doc.vehicle_model+'_'+doc.license_plate

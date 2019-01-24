@@ -99,7 +99,7 @@ has_permission = {
 
 doc_events = {
 	"Salary Slip": {
-		"validate": "cpfa.utils.misc_methods.calculate_base_amount"
+		"validate": "cpfa.utils.salary_slip_methods.comp_calc"
 	},
 	"Vehicle" :{
 	"autoname":"cpfa.utils.misc_methods.autoname"

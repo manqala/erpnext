@@ -15,7 +15,3 @@ class OvertimeApplication(Document):
 	pass
 	def autoname(self):
 		self.name=self.employee_name+"_"+self.date
-	def validate(self):
-		if(self.expected_period_of_task<4):
-			frappe.msgprint("Overtime duration that is less than 4 hours does not qualify for overtime allowance")
-            

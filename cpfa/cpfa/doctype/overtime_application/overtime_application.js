@@ -23,20 +23,36 @@ frappe.ui.form.on('Overtime Application', {
 	 	;
  	}
 	 	else{
-				var status=false;
+			var status=false;
 	 		frm.add_custom_button(("Confirm Overtime"),function(ev){
-	 				if(status==true){
-						frm.toggle_display("actual_period_spent_on_job",false)
-						status=false
-						frm.set_value("status","Approved");
-						frm.refresh_field("status")
+				emp=frm.doc.employee
+				frappe.call({
+					args:{emp:emp},
+					method:"cpfa.utils.misc_methods.get_val",
+					callback:function(r){
+						var id=r.message
+						if(id==frappe.user.name){
+							if(status==true){
+							 frm.toggle_display("actual_period_spent_on_job",false)
+							 status=false
+							 frm.set_value("status","Approved");
+							 frm.refresh_field("status")
+						 }
+						else if(status==false){
+							 frm.toggle_display("actual_period_spent_on_job",true)
+							 status=true
+							 frm.set_df_property("actual_period_spent_on_job","read_only",0);
+							 frm.set_value("status","Confirmed");
+							 cur_frm.refresh_fields()
+						 }
+						}
+					 else{
+
+						 frappe.throw("Only Owner of Overtime Application Can Confirm!")
+					 }
 					}
-				 else if(status==false){
-						frm.toggle_display("actual_period_spent_on_job",true)
-						status=true
-						frm.set_value("status","Confirmed");
-						frm.refresh_field("status")
-					}
+				})
+
 				}
 			)
 			;

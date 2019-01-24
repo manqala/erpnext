@@ -64,26 +64,37 @@ def get_structure_field(struc,component_name):
         if each.salary_component==component_name:
             return{"salary_component":each.salary_component,"accrual_basis":each.accrual_basis,"accrual_frequency":each.accrual_frequency}
 
+def calc_gross(earnings):
+    gross=0
+    for each in earnings:
+        gross+=each.amount
+    return gross
+
 
 
 @frappe.whitelist()
-def comp_calc(duration,employee,structure,rate,start_date,end_date,twd,cur_form):
+def comp_calc(cur_form):
     form_=json.loads(cur_form)
+    doc=frappe.get_doc(form_)
     values_=[]
-    check=verify_employee(structure,employee)
+    check=verify_employee(doc.salary_structure,doc.employee)
     if check:
-        sal_struc=frappe.get_doc("Salary Structure",structure)
-        emp=frappe.get_doc("Employee",employee)
+        sal_struc=frappe.get_doc("Salary Structure",doc.salary_structure)
+        emp=frappe.get_doc("Employee",doc.employee)
         for each in sal_struc.earnings:
-            accruals=get_structure_field(structure,each.salary_component)
-            result=basis_calculator(each,structure,emp,start_date,end_date,twd,duration)
+            accruals=get_structure_field(doc.salary_structure,each.salary_component)
+            result=basis_calculator(each,doc.salary_structure,emp,doc.start_date,doc.end_date,doc.total_working_days,doc.total_working_hours)
             amount_=frequency_calculator(each,result)
             accruals.update(amount_)
             values_.append(accruals)
         for each in values_:
-            for one in form_:
-                if each["salary_component"]==one["salary_component"]:
-                    one["accrual_basis"]=each["accrual_basis"]
-                    one["accrual_frequency"]=each["accrual_frequency"]
-                    one["amount"]=each["amount"]
-        return(form_)
+            for one in doc.earnings:
+                if each["salary_component"]==one.salary_component:
+                    one.accrual_basis=each["accrual_basis"]
+                    one.accrual_frequency=each["accrual_frequency"]
+                    one.amount=each["amount"]
+        gross=calc_gross(doc.earnings)
+        doc.gross_pay=gross
+        doc.net_pay=doc.gross_pay-doc.total_deduction-doc.total_loan_repayment
+        doc.rounded_total=round(doc.net_pay)
+    frappe.response.docs = [doc]
